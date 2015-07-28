@@ -53,7 +53,7 @@ def fetch_localizer_first_level(data_dir=None, verbose=1):
 
 
 def fetch_spm_auditory(data_dir=None, data_name='spm_auditory',
-                       subject_id="sub001", verbose=1):
+                       subject_id="sub001", mock=False, verbose=1):
     """Function to fetch SPM auditory single-subject data.
 
     Parameters
@@ -82,9 +82,7 @@ def fetch_spm_auditory(data_dir=None, data_name='spm_auditory',
 
     def _glob_spm_auditory_data():
         """glob data from subject_dir.
-
         """
-
         if not os.path.exists(subject_dir):
             return None
 
@@ -93,6 +91,8 @@ def fetch_spm_auditory(data_dir=None, data_name='spm_auditory',
             file_path = os.path.join(subject_dir, file_name)
             if os.path.exists(file_path):
                 subject_data[file_name] = file_path
+            elif mock:
+                continue
             else:
                 print("%s missing from filelist!" % file_name)
                 return None
@@ -102,6 +102,10 @@ def fetch_spm_auditory(data_dir=None, data_name='spm_auditory',
             [subject_data[x] for x in subject_data.keys()
              if re.match("^fM00223_0\d\d\.img$", os.path.basename(x))])
 
+        if mock:
+            _subject_data["func"] = SPM_AUDITORY_DATA_FILES[:-1]
+            _subject_data["anat"] = SPM_AUDITORY_DATA_FILES[-1]
+            return Bunch(**_subject_data)
         # volumes for this dataset of shape (64, 64, 64, 1); let's fix this
         for x in _subject_data["func"]:
             vol = nibabel.load(x)
@@ -134,17 +138,20 @@ def fetch_spm_auditory(data_dir=None, data_name='spm_auditory',
            "MoAEpilot.zip")
     archive_path = os.path.join(subject_dir, os.path.basename(url))
     _fetch_file(url, subject_dir)
+
     try:
         _uncompress_file(archive_path)
     except:
         print("Archive corrupted, trying to download it again.")
-        return fetch_spm_auditory(data_dir=data_dir, data_name="",
-                                  subject_id=subject_id)
+        if not mock:
+            return fetch_spm_auditory(data_dir=data_dir, data_name="",
+                                      subject_id=subject_id)
 
     return _glob_spm_auditory_data()
 
+
 def fetch_spm_multimodal_fmri(data_dir=None, data_name="spm_multimodal_fmri",
-                              subject_id="sub001", verbose=1):
+                              subject_id="sub001", mock=False, verbose=1):
     """Fetcher for Multi-modal Face Dataset.
 
     Parameters
@@ -186,10 +193,12 @@ def fetch_spm_multimodal_fmri(data_dir=None, data_name="spm_multimodal_fmri",
                         subject_dir,
                         ("fMRI/Session%i/fMETHODS-000%i-*-01.img" % (
                                 s + 1, s + 5)))))
-            if len(session_func) < 390:
+            if len(session_func) < 390 and mock is False:
                 print("Missing %i functional scans for session %i." % (
                     390 - len(session_func), s))
                 return None
+            elif mock is True:
+                _subject_data['func%i' % (s + 1)] = [''] * 390
             else:
                 _subject_data['func%i' % (s + 1)] = session_func
 
@@ -197,17 +206,21 @@ def fetch_spm_multimodal_fmri(data_dir=None, data_name="spm_multimodal_fmri",
             sess_trials = os.path.join(
                 subject_dir,
                 "fMRI/trials_ses%i.mat" % (s + 1))
-            if not os.path.isfile(sess_trials):
+            if not os.path.isfile(sess_trials) and mock is False:
                 print("Missing session file: %s" % sess_trials)
                 return None
+            elif mock is True:
+                _subject_data['trials_ses%i' % (s + 1)] = ''
             else:
                 _subject_data['trials_ses%i' % (s + 1)] = sess_trials
 
         # glob for anat data
         anat = os.path.join(subject_dir, "sMRI/smri.img")
-        if not os.path.isfile(anat):
+        if not os.path.isfile(anat) and mock is False:
             print("Missing structural image.")
             return None
+        elif mock is True:
+            _subject_data["anat"] = ''
         else:
             _subject_data["anat"] = anat
 
@@ -237,8 +250,9 @@ def fetch_spm_multimodal_fmri(data_dir=None, data_name="spm_multimodal_fmri",
             _uncompress_file(archive_path)
         except:
             print("Archive corrupted, trying to download it again.")
-            return fetch_spm_multimodal_fmri_data(data_dir=data_dir,
-                                                  data_name="",
-                                                  subject_id=subject_id)
+            if mock is False:
+                return fetch_spm_multimodal_fmri_data(data_dir=data_dir,
+                                                      data_name="",
+                                                      subject_id=subject_id)
 
     return _glob_spm_multimodal_fmri_data()

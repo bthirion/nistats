@@ -86,24 +86,25 @@ def test_fetch_localizer():
     assert_true(isinstance(dataset.epi_img, _basestring))
 
 
-#@with_setup(setup_tmpdata, teardown_tmpdata)
-#@with_setup(setup_mock, teardown_mock)
+@with_setup(setup_tmpdata, teardown_tmpdata)
+@with_setup(setup_mock, teardown_mock)
 def test_fetch_spm_auditory():
-    dataset = datasets.fetch_spm_auditory(data_dir=tmpdir)
+    dataset = datasets.fetch_spm_auditory(data_dir=tmpdir, mock=True)
     assert_true(isinstance(dataset.anat, _basestring))
     assert_true(isinstance(dataset.func[0], _basestring))
     assert_equal(len(dataset.func), 96)
 
 
-#@with_setup(setup_tmpdata, teardown_tmpdata)
-#@with_setup(setup_mock, teardown_mock)
+@with_setup(setup_tmpdata, teardown_tmpdata)
+@with_setup(setup_mock, teardown_mock)
 def test_fetch_spm_multimodal():
-    dataset = datasets.fetch_spm_multimodal_fmri(data_dir=tmpdir)
+    dataset = datasets.fetch_spm_multimodal_fmri(data_dir=tmpdir, mock=True)
     assert_true(isinstance(dataset.anat, _basestring))
     assert_true(isinstance(dataset.func1[0], _basestring))
     assert_equal(len(dataset.func1), 390)
     assert_true(isinstance(dataset.func2[0], _basestring))
     assert_equal(len(dataset.func2), 390)
     assert_equal(dataset.slice_order, 'descending')
-    assert_true(dataset.trials_ses1, _basestring)
-    assert_true(dataset.trials_ses2, _basestring)
+    assert_true(isinstance(dataset.trials_ses1, _basestring))
+    assert_true(isinstance(dataset.trials_ses2, _basestring))
+
