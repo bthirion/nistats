@@ -39,7 +39,7 @@ REQUIRED_MODULE_METADATA = (
         'required_at_installation': True,
         'install_info': _NISTATS_INSTALL_MSG}),
     ('nilearn', {
-        'min_version': '0.1.0',
+        'min_version': '0.1.4',
         'required_at_installation': True,
         'install_info': _NISTATS_INSTALL_MSG}),
     ('nibabel', {

@@ -30,7 +30,7 @@ The required dependencies to use the software are:
 * Numpy >= 1.6.1
 * SciPy >= 0.9
 * Nibabel >= 1.1.0
-* Nilearn >= 0.1.3
+* Nilearn >= 0.1.4
 * Pandas >= 0.12
 
 If you are using nilearn plotting functionalities or running the
