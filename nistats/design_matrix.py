@@ -314,7 +314,7 @@ def make_design_matrix(
         n_add_regs = add_regs.shape[1]
         assert add_regs.shape[0] == np.size(frame_times), ValueError(
             'incorrect specification of additional regressors: '
-            'length of regressors provided: %s, number of ' +
+            'length of regressors provided: %s, number of '
             'time-frames: %s' % (add_regs.shape[0], np.size(frame_times)))
 
     # check that additional regressor names are well specified
