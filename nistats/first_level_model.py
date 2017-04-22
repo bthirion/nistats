@@ -344,11 +344,6 @@ class FirstLevelModel(BaseEstimator, TransformerMixin, CacheMixin):
         # Check imgs type
         if not isinstance(run_imgs, (list, tuple)):
             run_imgs = [run_imgs]
-        for rimg in run_imgs:
-            if not isinstance(rimg, (_basestring, Nifti1Image)):
-                raise ValueError('run_imgs must be Niimg-like object or list'
-                                 ' of Niimg-like objects')
-        # check all information necessary to build design matrices is available
         if design_matrices is None:
             if events is None:
                 raise ValueError('events or design matrices must be provided')

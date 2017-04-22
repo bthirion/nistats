@@ -12,9 +12,8 @@ import numpy as np
 import pandas as pd
 
 import nibabel as nib
-from nibabel import Nifti1Image
 from nilearn.plotting import plot_stat_map, show
-from nilearn.image import mean_img
+from nilearn.image import mean_img, concat_imgs
 
 from nistats.first_level_model import FirstLevelModel
 from nistats.datasets import fetch_spm_auditory
@@ -24,8 +23,9 @@ from nistats.datasets import fetch_spm_auditory
 # ----------------------------------
 # Fetch the dataset
 subject_data = fetch_spm_auditory()
-fmri_img = nib.concat_images(subject_data.func)
-fmri_img = Nifti1Image(fmri_img.get_data(), fmri_img.affine)
+fmri_img = concat_imgs(subject_data.func)
+fmri_img = nib.Nifti1Image(fmri_img.get_data(), fmri_img.affine)
+
 #########################################################################
 # compute background image unto which activation will be projected
 mean_img = mean_img(fmri_img)
@@ -94,7 +94,7 @@ for contrast_id, contrast_val in contrasts.items():
         if not os.path.exists(map_dir):
             os.makedirs(map_dir)
         map_path = os.path.join(map_dir, '%s.nii.gz' % contrast_id)
-        nib.save(out_map, map_path)
+        out_map.to_filename(map_path)
         print("\t\t%s map: %s" % (dtype, map_path))
 
     #########################################################################
