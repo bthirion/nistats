@@ -34,7 +34,7 @@ The required dependencies to use the software are:
 * Nibabel >= 1.1.0
 * Nilearn >= 0.2.0
 * Pandas >= 0.13
-* Sklearn >= 0.14.1
+* Sklearn >= 0.15
 * Patsy >= 0.2.0
 
 If you are using nilearn plotting functionalities or running the
