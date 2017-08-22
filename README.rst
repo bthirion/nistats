@@ -29,7 +29,7 @@ The required dependencies to use the software are:
 
 * Python >= 2.7
 * setuptools
-* Numpy >= 1.7.1
+* Numpy >= 1.8.2
 * SciPy >= 0.12.0
 * Nibabel >= 1.1.0
 * Nilearn >= 0.2.0
