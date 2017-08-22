@@ -284,7 +284,7 @@ sphinx_gallery_conf = {
         'nilearn': 'http://nilearn.github.io/index.html',
         'matplotlib': 'http://matplotlib.org',
         'numpy': 'http://docs.scipy.org/doc/numpy-1.6.0',
-        'scipy': 'http://docs.scipy.org/doc/scipy-0.11.0/reference',
+        'scipy': 'http://docs.scipy.org/doc/scipy-0.12.0/reference',
         'nibabel': 'http://nipy.org/nibabel',
         'sklearn': 'http://scikit-learn.org/stable',
         'patsy': 'http://patsy.readthedocs.io/en/latest/',
