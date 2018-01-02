@@ -20,7 +20,6 @@ data = datasets.fetch_localizer_first_level()
 paradigm_file = data.paradigm
 paradigm = pd.read_csv(paradigm_file, sep=' ', header=None, index_col=None)
 paradigm.columns = ['session', 'trial_type', 'onset']
-# fmri_img = data.epi_img
 
 
 #########################################################################
@@ -31,7 +30,6 @@ from nilearn.datasets import fetch_surf_fsaverage5
 fsaverage = fetch_surf_fsaverage5()
 from nilearn import surface
 texture = surface.vol_to_surf(data.epi_img, fsaverage.pial_right)
-
 
 #########################################################################
 # Perform first level analysis
@@ -48,19 +46,10 @@ X = make_design_matrix(
 from nistats.first_level_model import run_glm
 labels, results = run_glm(texture.T, X.values, noise_model='ar1')
 
-"""
-# Setup and fit GLM
-from nistats.first_level_model import FirstLevelModel
-first_level_model = FirstLevelModel(t_r, slice_time_ref,
-                                    hrf_model='glover + derivative')
-first_level_model = first_level_model.fit(texture, paradigm)
-"""
-
 #########################################################################
 # Estimate contrasts
 # ------------------
 # Specify the contrasts
-
 
 design_matrix = X
 contrast_matrix = np.eye(design_matrix.shape[1])
@@ -79,7 +68,7 @@ contrasts["sentences"] = contrasts["phraseaudio"] + contrasts["phrasevideo"]
 contrasts = {
     "left-right": (contrasts["clicGaudio"] + contrasts["clicGvideo"]
                    - contrasts["clicDaudio"] - contrasts["clicDvideo"]),
-    "H-V": contrasts["damier_H"] - contrasts["damier_V"],
+    "Horizontal-Vertical": contrasts["damier_H"] - contrasts["damier_V"],
     "audio-video": contrasts["audio"] - contrasts["video"],
     "video-audio": -contrasts["audio"] + contrasts["video"],
     "computation-sentences": (contrasts["computation"] -
