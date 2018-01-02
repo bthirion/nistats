@@ -33,21 +33,36 @@ from nilearn import surface
 texture = surface.vol_to_surf(data.epi_img, fsaverage.pial_right)
 
 
-
 #########################################################################
 # Perform first level analysis
 # ----------------------------
+# Set up design matrix
+import numpy as np
+from nistats.design_matrix import make_design_matrix
+n_scans = texture.shape[1]
+frame_times = (slice_time_ref + np.arange(n_scans)) * t_r
+X = make_design_matrix(
+    frame_times, paradigm, hrf_model='glover + derivative')
+
+# fit the GLM
+from nistats.first_level_model import run_glm
+labels, results = run_glm(texture.T, X.values, noise_model='ar1')
+
+"""
 # Setup and fit GLM
 from nistats.first_level_model import FirstLevelModel
 first_level_model = FirstLevelModel(t_r, slice_time_ref,
                                     hrf_model='glover + derivative')
 first_level_model = first_level_model.fit(texture, paradigm)
+"""
 
 #########################################################################
 # Estimate contrasts
 # ------------------
 # Specify the contrasts
-design_matrix = first_level_model.design_matrices_[0]
+
+
+design_matrix = X
 contrast_matrix = np.eye(design_matrix.shape[1])
 contrasts = dict([(column, contrast_matrix[i])
                   for i, column in enumerate(design_matrix.columns)])
@@ -74,14 +89,18 @@ contrasts = {
 
 #########################################################################
 # contrast estimation
+from nistats.contrasts import compute_contrast
+from nilearn import plotting
+
+
 for index, (contrast_id, contrast_val) in enumerate(contrasts.items()):
     print('  Contrast % 2i out of %i: %s' %
           (index + 1, len(contrasts), contrast_id))
-    z_map = first_level_model.compute_contrast(contrast_val,
-                                               output_type='z_score')
+    z_values = compute_contrast(labels, results, contrast_val).z_score()
 
     # Create snapshots of the contrasts
-    display = plotting.plot_stat_map(z_map, display_mode='z',
-                                     threshold=3.0, title=contrast_id)
+    plotting.plot_surf_stat_map(
+        fsaverage.infl_right, z_values, hemi='right', title=contrast_id,
+        threshold=3., bg_map=fsaverage.sulc_right, cmap='cold_hot')
 
 plotting.show()
