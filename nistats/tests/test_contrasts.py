@@ -6,6 +6,7 @@ from nistats.first_level_model import run_glm
 from nistats.contrasts import compute_contrast, _fixed_effect_contrast
 
 from numpy.testing import assert_almost_equal
+from scipy.linalg import sqrtm
 
 
 def test_Tcontrast():
@@ -97,12 +98,19 @@ def test_contrast_values():
     # t test
     cval = np.eye(q)[0]
     con = compute_contrast(lab, res, cval)
-    t_ref = list(res.values())[0].Tcontrast(cval).t
+    summary_stats = res.values()[0]
+    t_ref = cval.dot(summary_stats.theta) /\
+        np.ravel(np.sqrt(summary_stats.vcov(matrix=np.atleast_2d(cval))))
     assert_almost_equal(np.ravel(con.stat()), t_ref)
     # F test
     cval = np.eye(q)[:3]
     con = compute_contrast(lab, res, cval)
-    F_ref = list(res.values())[0].Fcontrast(cval).F
+    cbeta = np.atleast_2d(np.dot(cval, summary_stats.theta))
+    invcov = np.linalg.inv(
+        summary_stats.vcov(matrix=cval, dispersion=1.))
+    wcbeta = np.dot(sqrtm(invcov), cbeta)
+    F_ref = np.sum(wcbeta ** 2, 0) / 3 / summary_stats.dispersion
+    # F_ref = list(res.values())[0].Fcontrast(cval).F
     # Note that the values are not strictly equal,
     # this seems to be related to a bug in Mahalanobis
     assert_almost_equal(np.ravel(con.stat()), F_ref, 3)
