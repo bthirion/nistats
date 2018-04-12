@@ -46,7 +46,6 @@ class OLSModel(object):
     Methods
     -------
     model.__init___(design)
-    model.logL(b=self.beta, Y)
 
     Attributes
     ----------
@@ -98,70 +97,6 @@ class OLSModel(object):
         self.df_model = matrix_rank(self.design, eps)
         self.df_resid = self.df_total - self.df_model
 
-    def logL(self, beta, Y, nuisance=None):
-        r''' Returns the value of the loglikelihood function at beta.
-
-        Given the whitened design matrix, the loglikelihood is evaluated
-        at the parameter vector, beta, for the dependent variable, Y
-        and the nuisance parameter, sigma.
-
-        Parameters
-        ----------
-        beta : ndarray
-            The parameter estimates.  Must be of length df_model.
-
-        Y : ndarray
-            The dependent variable
-
-        nuisance : dict, optional
-            A dict with key 'sigma', which is an optional estimate of sigma. If
-            None, defaults to its maximum likelihood estimate (with beta fixed)
-            as ``sum((Y - X*beta)**2) / n``, where n=Y.shape[0], X=self.design.
-
-        Returns
-        -------
-        loglf : float
-            The value of the loglikelihood function.
-
-        Notes
-        -----
-        The log-Likelihood Function is defined as
-
-        .. math::
-
-            \ell(\beta,\sigma,Y)=
-            -\frac{n}{2}\log(2\pi\sigma^2) - \|Y-X\beta\|^2/(2\sigma^2)
-
-        The parameter :math:`\sigma` above is what is sometimes referred to as a
-        nuisance parameter. That is, the likelihood is considered as a function
-        of :math:`\beta`, but to evaluate it, a value of :math:`\sigma` is
-        needed.
-
-        If :math:`\sigma` is not provided, then its maximum likelihood estimate:
-
-        .. math::
-
-            \hat{\sigma}(\beta) = \frac{\text{SSE}(\beta)}{n}
-
-        is plugged in. This likelihood is now a function of only :math:`\beta`
-        and is technically referred to as a profile-likelihood.
-
-        References
-        ----------
-        .. [1] W. Green.  "Econometric Analysis," 5th ed., Pearson, 2003.
-        '''
-        # This is overwriting an abstract method of LikelihoodModel
-        X = self.wdesign
-        wY = self.whiten(Y)
-        r = wY - np.dot(X, beta)
-        n = self.df_total
-        SSE = (r ** 2).sum(0)
-        if nuisance is None:
-            sigmasq = SSE / n
-        else:
-            sigmasq = nuisance['sigma']
-        loglf = - n / 2. * np.log(2 * np.pi * sigmasq) - SSE / (2 * sigmasq)
-        return loglf
 
     def whiten(self, X):
         """ Whiten design matrix
@@ -352,12 +287,6 @@ class SimpleRegressionResults(LikelihoodModelResults):
         self.df_model = results.model.df_model
         # put this as a parameter of LikelihoodModel
         self.df_resid = self.df_total - self.df_model
-
-    def logL(self, Y):
-        """
-        The maximized log-likelihood
-        """
-        raise ValueError('can not use this method for simple results')
 
     def resid(self, Y):
         """

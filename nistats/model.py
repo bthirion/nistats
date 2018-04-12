@@ -46,7 +46,7 @@ class LikelihoodModelResults(object):
             multiplicative factor in front of `cov`
 
         nuisance : None of ndarray
-            parameter estimates needed to compute logL
+            parameter estimates needed to compute log-lokelohood
 
         rank : None or scalar
             rank of the model.  If rank is not None, it is used for df_model
@@ -76,14 +76,8 @@ class LikelihoodModelResults(object):
         self.df_model = model.df_model
         # put this as a parameter of LikelihoodModel
         self.df_resid = self.df_total - self.df_model
-        
-    @setattr_on_read
-    def logL(self):
-        """
-        The maximized log-likelihood
-        """
-        return self.model.logL(self.theta, self.Y, nuisance=self.nuisance)
 
+    
     def t(self, column=None):
         """
         Return the (Wald) t-statistic for a given parameter estimate.
