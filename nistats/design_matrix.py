@@ -495,7 +495,7 @@ def make_second_level_design_matrix(subjects_label, confounds=None):
 
     # check design matrix is not singular
     epsilon = sys.float_info.epsilon
-    if np.linalg.cond(design_matrix.values) > design_matrix.size:
+    if np.linalg.cond(design_matrix.as_matrix()) > 1.e6:
         warn('Attention: Design matrix is singular. Aberrant estimates '
              'are expected.')
     return design_matrix

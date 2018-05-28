@@ -101,9 +101,13 @@ def test_fmri_inputs():
         des.to_csv(des_fname)
 
         # prepare correct input first level models
-        flm = FirstLevelModel(subject_label='01').fit(FUNCFILE,
+        flm1 = FirstLevelModel(subject_label='01').fit(FUNCFILE,
                                                       design_matrices=des)
-        flms = [flm, flm, flm]
+        flm2 = FirstLevelModel(subject_label='02').fit(FUNCFILE,
+                                                      design_matrices=des)
+        flm3 = FirstLevelModel(subject_label='03').fit(FUNCFILE,
+                                                      design_matrices=des)
+        flms = [flm1, flm2, flm3]
         # prepare correct input dataframe and lists
         shapes = ((7, 8, 9, 1),)
         _, FUNCFILE, _ = _write_fake_fmri_data(shapes)
@@ -138,8 +142,8 @@ def test_fmri_inputs():
 
         # test wrong input errors
         # test first level model requirements
-        assert_raises(ValueError, SecondLevelModel().fit, flm)
-        assert_raises(ValueError, SecondLevelModel().fit, [flm])
+        assert_raises(ValueError, SecondLevelModel().fit, flm1)
+        assert_raises(ValueError, SecondLevelModel().fit, [flm1])
         # test dataframe requirements
         assert_raises(ValueError, SecondLevelModel().fit,
                       niidf['subject_label'])

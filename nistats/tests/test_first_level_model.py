@@ -237,6 +237,14 @@ def basic_paradigm():
     return events
 
 
+def short_paradigm():
+    conditions = ['c0', 'c1', 'c2']
+    onsets = [3., 2., 4.]
+    paradigm = pd.DataFrame({'trial_type': conditions,
+                             'onset': onsets})
+    return paradigm
+
+
 def test_first_level_model_design_creation():
         # Test processing of FMRI inputs
     with InTemporaryDirectory():
