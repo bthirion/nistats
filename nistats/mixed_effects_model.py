@@ -44,19 +44,23 @@ def mixed_model_inference(X, Y, V1, n_iter=5, verbose=0):
     Y_ = np.dot(X, beta_)
     V2_ = np.mean((Y - Y_) ** 2, 0)
 
-    logl = _mixed_log_likelihood(Y, Y_, V1, V2_)
     if verbose:
+        logl = _mixed_log_likelihood(Y, Y_, V1, V2_)
         print('Average log-likelihood: ', logl.mean())
 
     for i in range(n_iter):
         beta_, Y_, V2_ = _em_step(Y, Y_, V1, V2_, X, pinv_X)
-        logl_ = _mixed_log_likelihood(Y, Y_, V1, V2_)
         if verbose:
+            logl_ = _mixed_log_likelihood(Y, Y_, V1, V2_)
             if (logl_ < (logl - 100 * np.finfo(float).eps)).any():
                 raise ValueError('The log-likelihood cannot decrease')
             logl = logl_
             print('Iteration %d, average log-likelihood: %f' % (
                     i, logl_.mean()))
+ 
+    if not verbose:
+        # need to return loglikelihood
+        logl_ = _mixed_log_likelihood(Y, Y_, V1, V2_)
     return beta_, V2_, logl_
 
 
@@ -72,7 +76,7 @@ def _randomize_design(X):
     
 def mixed_effects_likelihood_ratio_test(
     masker, effects, variance, design_matrix, contrast,
-    n_perm=10, n_iter=5, n_jobs=1):
+    n_perm=1000, n_iter=5, n_jobs=1):
     """ Compute a second-level contrast given brain maps
 
     Parameters
@@ -98,7 +102,8 @@ def mixed_effects_likelihood_ratio_test(
     _, _, log_likelihood_null = mixed_model_inference(
         X_null, Y, V1, n_iter=n_iter)
     logl_ratio = np.maximum(log_likelihood - log_likelihood_null, 0)
-
+    z_ = np.sqrt(2 * logl_ratio) * np.sign(beta_)
+    
     def permuted_max(X, contrast, Y, V1, n_iter):
         X_ = _randomize_design(X)
         X_null_ = X - np.dot(np.dot(X_, contrast), np.linalg.pinv(contrast))
@@ -113,10 +118,10 @@ def mixed_effects_likelihood_ratio_test(
         delayed(permuted_max)(X, contrast, Y, V1, n_iter)
         for _ in range(n_perm))
     
-    max_diff_loglike = np.array(sorted(max_diff_loglike))
+    max_diff_z = np.sqrt(2 * np.array(sorted(max_diff_loglike)))
     beta = masker.inverse_transform(beta_)
+    z_map = masker.inverse_transform(z_)
     second_level_variance = masker.inverse_transform(V2)
     log_likelihood_ratio = masker.inverse_transform(logl_ratio)
-    return (beta, second_level_variance, log_likelihood_ratio,
-            max_diff_loglike)
+    return (beta, second_level_variance, z_map, max_diff_z)
 
