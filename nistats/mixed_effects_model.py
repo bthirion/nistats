@@ -9,6 +9,7 @@ import numpy as np
 from nistats.second_level_model import SecondLevelModel
 from joblib import Parallel, delayed
 
+
 def _mixed_log_likelihood(data, mean, V1, V2):
     """ return the log-likelighood of the data under the composite variance model
     """
@@ -81,16 +82,31 @@ def mixed_effects_likelihood_ratio_test(
 
     Parameters
     ----------
-    masker: NiiftiMasker
-    effects_maps: niimg
-    variance_maps: niimg
-    design_matrix: numpy array
-
+    masker: NiiftiMasker instance,
+        masker object that takes care of data shaping and masking
+    effects_maps: niimg,
+        set of volumes representing the estimated effects
+    variance_maps: niimg,
+        set of volumes representing the effects variance
+    design_matrix: numpy array,
+        second-level design matrix that represents explanatory variables
+        across subjects
+ 
     Returns
     -------
-    effect size map
-    second_level variance map
-    log-likelihood map
+    beta: Nifti1Image,
+        the group-level map of estimated effect size
+    second_level_variance_map: Nifti1Image,
+        the group level map of estimated cross-subject variance
+    z_map: Nifti1Image
+        A stat maps that represents a z-scale map of the statistic;
+        it is based on a log-likelihood ratio for the specified contrast.
+        the map is signed according to the estimated effect (beta map)
+    max_diff_z: numpy array,
+        The set of maximal z-values obtained under permutations of the model
+        This represents a non-parametric distribution of max(z) under the null.
+        According to westfall-Young procedure, quantiles of this provide
+        fwer-corrected thresholds. 
     """
     Y = masker.transform(effects)
     V1 = masker.transform(variance)
