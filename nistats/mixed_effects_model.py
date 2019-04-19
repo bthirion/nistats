@@ -111,7 +111,13 @@ def mixed_effects_likelihood_ratio_test(
     design_matrix: numpy array,
         second-level design matrix that represents explanatory variables
         across subjects
- 
+    contrast: numpy array,
+        specification of a second-level contrast to infer upon
+    n_perm: int, optional,
+        Number of permutations in the non-parametric test
+    n_jobs: int, optional:
+        Number of jobs for computation of permutations
+
     Returns
     -------
     beta: Nifti1Image,
@@ -131,14 +137,21 @@ def mixed_effects_likelihood_ratio_test(
     Y = masker.transform(effects)
     V1 = masker.transform(variance)
 
+    try:
+        contrast = np.atleast2d(contrast).astype(np.float)
+    except:
+        ValueError(
+            'Provided contrast cannot be cast to 2d array')
+
     if Y.shape != V1.shape:
-        raise ValueError('Effects and variance have inconsistent shapes.
-        Shape of effects is %s, shape of variance is %s'
-                         % (str(Y.shape), str(V1.shape)))
-    if Y.shape[1] != dmtx.shape[0]:
-        raise ValueError( 'the number %d of columns in Effects and the number
-        of rows in design matrix do not match'
-                          % (Y.shape[1], design_matrix.shape[0]))
+        raise ValueError(
+            'Effects and variance have inconsistent shapes.'
+            'Shape of effects is %s, shape of variance is %s'
+            % (str(Y.shape), str(V1.shape)))
+    if Y.shape[0] != design_matrix.shape[0]:
+        raise ValueError(
+            'the number %d of rows in Effects and in design matrix (%d)'
+            'do not match' % (Y.shape[0], design_matrix.shape[0]))
     
     # here we manipulate design matrix and contrast to obatin X and X0
     X = design_matrix.values
