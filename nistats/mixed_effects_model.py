@@ -1,9 +1,16 @@
-"""
-Extension of second_level_model to handle mixed effects,
+"""Extension of second_level_model to handle mixed effects,
 ie two levels of variance corresponding to
-intra- and inter-subject variability respectivelyself.
+intra- and inter-subject variability respectively.
 
-Author: Bertrand Thirion
+Importantly, the first level variance is assumed to be known (and kept fixed),
+and only population parameters are estimated.
+
+The focus is put on inference: Getting statistics with correct
+probabilistic control. In the absence of a correct analytical model, we
+provide a permutation test.
+
+Author: Bertrand Thirion, 2019
+
 """
 import numpy as np
 from nistats.second_level_model import SecondLevelModel
@@ -11,7 +18,7 @@ from joblib import Parallel, delayed
 
 
 def _mixed_log_likelihood(data, mean, V1, V2):
-    """ return the log-likelighood of the data under the composite variance model
+    """ return the log-likelighood of the data under a composite variance model
     """
     total_variance = V1 + V2
     logl = np.sum(((data - mean) ** 2) / total_variance, 0)
@@ -57,8 +64,8 @@ def mixed_model_inference(X, Y, V1, n_iter=5, verbose=0):
                 raise ValueError('The log-likelihood cannot decrease')
             logl = logl_
             print('Iteration %d, average log-likelihood: %f' % (
-                    i, logl_.mean()))
- 
+                i, logl_.mean()))
+
     if not verbose:
         # need to return loglikelihood
         logl_ = _mixed_log_likelihood(Y, Y_, V1, V2_)
@@ -66,7 +73,7 @@ def mixed_model_inference(X, Y, V1, n_iter=5, verbose=0):
 
 
 def _randomize_design(X):
-    """small utility to randomize the design matrix"""
+    """small utility to randomize the rows of the design matrix"""
     X_ = X.copy()
     np.random.shuffle(X_)
     if (X_ == X).all():
@@ -74,7 +81,20 @@ def _randomize_design(X):
         X_ *= sign_swap
     return X_
 
-    
+
+def _permuted_max_llr(X, contrast, Y, V1, n_iter):
+    """utility function that randomizes the design and computes the maximum
+    log-likelihood ratio over the data."""
+    X_ = _randomize_design(X)
+    X_null_ = X - np.dot(np.dot(X_, contrast), np.linalg.pinv(contrast))
+    _, _, log_likelihood_ = mixed_model_inference(X_, Y, V1, n_iter=n_iter)
+    _, _, log_likelihood_null_ = mixed_model_inference(
+        X_null_, Y, V1, n_iter=n_iter)
+    log_likelihood_ratio_ = np.maximum(
+        log_likelihood_ - log_likelihood_null_, 0)
+    return log_likelihood_ratio_.max()
+
+
 def mixed_effects_likelihood_ratio_test(
     masker, effects, variance, design_matrix, contrast,
     n_perm=1000, n_iter=5, n_jobs=1):
@@ -111,33 +131,37 @@ def mixed_effects_likelihood_ratio_test(
     Y = masker.transform(effects)
     V1 = masker.transform(variance)
 
+    if Y.shape != V1.shape:
+        raise ValueError('Effects and variance have inconsistent shapes.
+        Shape of effects is %s, shape of variance is %s'
+                         % (str(Y.shape), str(V1.shape)))
+    if Y.shape[1] != dmtx.shape[0]:
+        raise ValueError( 'the number %d of columns in Effects and the number
+        of rows in design matrix do not match'
+                          % (Y.shape[1], design_matrix.shape[0]))
+    
     # here we manipulate design matrix and contrast to obatin X and X0
     X = design_matrix.values
     X_null = X - np.dot(np.dot(X, contrast), np.linalg.pinv(contrast))
+    # get parameters estimates for the full model
     beta_, V2, log_likelihood = mixed_model_inference(X, Y, V1, n_iter=n_iter)
+    # parameters estimates for the reduced model
     _, _, log_likelihood_null = mixed_model_inference(
         X_null, Y, V1, n_iter=n_iter)
+    # compute the log of likrelihood ratio between the two models
     logl_ratio = np.maximum(log_likelihood - log_likelihood_null, 0)
+    # convert the permuted log-likelihood to z-scores
     z_ = np.sqrt(2 * logl_ratio) * np.sign(beta_)
-    
-    def permuted_max(X, contrast, Y, V1, n_iter):
-        X_ = _randomize_design(X)
-        X_null_ = X - np.dot(np.dot(X_, contrast), np.linalg.pinv(contrast))
-        _, _, log_likelihood_ = mixed_model_inference(X_, Y, V1, n_iter=n_iter)
-        _, _, log_likelihood_null_ = mixed_model_inference(
-            X_null_, Y, V1, n_iter=n_iter)
-        log_likelihood_ratio_ = np.maximum(
-            log_likelihood_ - log_likelihood_null_, 0)
-        return log_likelihood_ratio_.max()
-        
+            
     max_diff_loglike = Parallel(n_jobs=n_jobs)(
-        delayed(permuted_max)(X, contrast, Y, V1, n_iter)
+        delayed(_permuted_max_llr)(X, contrast, Y, V1, n_iter)
         for _ in range(n_perm))
-    
+
+    # convert the permuted log-likelihood to z-scores
     max_diff_z = np.sqrt(2 * np.array(sorted(max_diff_loglike)))
+
+    # Generate outputs
     beta = masker.inverse_transform(beta_)
     z_map = masker.inverse_transform(z_)
     second_level_variance = masker.inverse_transform(V2)
-    log_likelihood_ratio = masker.inverse_transform(logl_ratio)
     return (beta, second_level_variance, z_map, max_diff_z)
-
