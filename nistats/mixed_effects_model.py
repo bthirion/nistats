@@ -96,14 +96,12 @@ def _permuted_max_llr(X, contrast, Y, V1, n_iter):
 
 
 def mixed_effects_likelihood_ratio_test(
-    masker, effects, variance, design_matrix, contrast,
-    n_perm=1000, n_iter=5, n_jobs=1):
-    """ Compute a second-level contrast given brain maps
+        effects, variance, design_matrix, contrast, mask_img=None,
+        n_perm=1000, n_iter=5, n_jobs=1):
+    """Compute a second-level contrast given brain maps
 
     Parameters
     ----------
-    masker: NiiftiMasker instance,
-        masker object that takes care of data shaping and masking
     effects_maps: niimg,
         set of volumes representing the estimated effects
     variance_maps: niimg,
@@ -113,6 +111,8 @@ def mixed_effects_likelihood_ratio_test(
         across subjects
     contrast: numpy array,
         specification of a second-level contrast to infer upon
+    mask_img: niimg, optional,
+        Mask image for the analysis
     n_perm: int, optional,
         Number of permutations in the non-parametric test
     n_jobs: int, optional:
@@ -134,6 +134,11 @@ def mixed_effects_likelihood_ratio_test(
         According to westfall-Young procedure, quantiles of this provide
         fwer-corrected thresholds. 
     """
+    if mask_img is None:
+        masker = NiftiMasker(mask_strategy='background').fit(effect_maps)
+    else:
+        masker = NiftiMasker(mask_img=mask_img).fit()
+    
     Y = masker.transform(effects)
     V1 = masker.transform(variance)
 

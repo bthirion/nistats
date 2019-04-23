@@ -23,8 +23,13 @@ todo:
 # --------------
 # We download a list of left vs right button press contrasts from a
 # localizer dataset. Note that we fetc individual t-maps that represent the Bold activity estimate divided by the uncertainty about this estimate. 
+from nistats.datasets import fetch_relational_summary_statistics
+
+
 import glob
 import shutil
+dataset = fetch_relational_summary_statistics()
+
 effect_imgs = sorted(glob.glob(
     '/tmp/relational-match_maps/*_effect_relational-match.nii.gz'))
 variance_imgs = sorted(glob.glob(

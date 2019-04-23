@@ -9,7 +9,6 @@ from nilearn._utils.exceptions import DimensionError
 import pandas as pd
 import numpy as np
 from nibabel import Nifti1Image
-from nilearn.input_data import NiftiMasker
 from nilearn.image import math_img
 from nibabel.tmpdirs import InTemporaryDirectory
 from nistats.mixed_effects_model import mixed_effects_likelihood_ratio_test
@@ -21,7 +20,6 @@ def test_mixed_effects_lrt():
         n_subjects = 10
         shapes = ((3, 4, 5, n_subjects),)
         mask, FUNCFILE, _ = _write_fake_fmri_data(shapes)
-        masker = NiftiMasker(mask_img=mask).fit()
         effects = FUNCFILE[0]
         variance = math_img('.1 * i ** 2', i=effects)
         design_matrix = pd.DataFrame({'intercept': np.ones(n_subjects)}) 
@@ -31,7 +29,7 @@ def test_mixed_effects_lrt():
         for contrast in [np.array([[1]])]:
             beta, variance_, z_map, max_diff_z =\
                 mixed_effects_likelihood_ratio_test(
-                    masker, effects, variance, design_matrix, contrast,
+                    effects, variance, design_matrix, contrast, mask,
                     n_perm=n_perm, n_iter=5, n_jobs=1)
             for img in [beta, variance_, z_map]:
                 assert_true(isinstance(img, Nifti1Image))
@@ -48,7 +46,7 @@ def test_mixed_effects_lrt():
         for contrast in (np.array([[0, 1]]).T, np.array([[1, -1]]).T):
             beta, variance_, z_map, max_diff_z =\
                 mixed_effects_likelihood_ratio_test(
-                    masker, effects, variance, design_matrix, contrast,
+                    effects, variance, design_matrix, contrast, mask,
                     n_perm=n_perm, n_iter=5, n_jobs=1)
             assert_equal(len(max_diff_z), n_perm)
             assert_true(max_diff_z[0] > 0)
@@ -65,7 +63,6 @@ def test_fmri_inputs():
         n_subjects = 10
         shapes = ((3, 4, 5, n_subjects),)
         mask, FUNCFILE, _ = _write_fake_fmri_data(shapes)
-        masker = NiftiMasker(mask_img=mask).fit()
         effects = FUNCFILE[0]
         variance = math_img('.1 * i ** 2', i=effects)
         design_matrix = pd.DataFrame({'intercept': np.ones(n_subjects)}) 
@@ -79,15 +76,15 @@ def test_fmri_inputs():
         # Fail when design matrix is not correct size
         design_matrix_ = pd.DataFrame({'intercept': np.ones(n_subjects + 1)}) 
         assert_raises(ValueError, mixed_effects_likelihood_ratio_test,
-            masker, effects, variance, design_matrix_, contrast)
+                      effects, variance, design_matrix_, contrast, mask)
 
         shapes = ((3, 4, 5, n_subjects + 1),)
         # Fail when data sizes are not consistent
         _, FUNCFILE_, _ = _write_fake_fmri_data(shapes)
         assert_raises(ValueError, mixed_effects_likelihood_ratio_test,
-            masker, FUNCFILE_[0], variance, design_matrix, contrast)
+                      FUNCFILE_[0], variance, design_matrix, contrast, mask)
 
         assert_raises(DimensionError, mixed_effects_likelihood_ratio_test,
-            masker, [FUNCFILE], variance, design_matrix, contrast)
+                      [FUNCFILE], variance, design_matrix, contrast, mask)
         assert_raises(DimensionError, mixed_effects_likelihood_ratio_test,
-            masker, FUNCFILE, [variance], design_matrix, contrast)
+                      FUNCFILE, [variance], design_matrix, contrast, mask)

@@ -688,3 +688,38 @@ def fetch_fiac_first_level(data_dir=None, verbose=1):
         return fetch_fiac_first_level(data_dir=data_dir)
 
     return _glob_fiac_data()
+
+
+def fetch_relational_summary_statistics(data_dir=None, url=None, verbose=1):
+    """Download a dataset with first-level statistical maps from 13
+    subjects performin HCP's relational task.
+
+    Parameters
+    ----------
+    data_dir: string
+        directory where data should be downloaded and unpacked.
+
+    Returns
+    -------
+    data: sklearn.datasets.base.Bunch
+        dictionary-like object, with the keys:
+        epi_img: the input 4D image
+        events: a csv file describing the paardigm
+
+    """
+
+    if url is None:
+        url = 'https://osf.io/xem54/download'
+
+    imgs = "*.nii.gz"
+    opts = {'uncompress': True}
+    dir_ = 'relational-match_maps'
+    filenames = [(os.path.join(dir_, name), url, opts) for img in imgs]
+
+    dataset_name = "relational_summary_statistics"
+    data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
+                                verbose=verbose)
+    files = _fetch_files(data_dir, filenames, verbose=verbose)
+
+    params = dict(list(zip(filenames, files)))
+    return Bunch(**params)
