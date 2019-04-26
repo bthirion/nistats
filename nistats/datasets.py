@@ -690,7 +690,7 @@ def fetch_fiac_first_level(data_dir=None, verbose=1):
     return _glob_fiac_data()
 
 
-def fetch_relational_summary_statistics(data_dir=None, url=None, verbose=1):
+def fetch_relational_summary_statistics(data_dir=None, verbose=1):
     """Download a dataset with first-level statistical maps from 13
     subjects performin HCP's relational task.
 
@@ -707,14 +707,28 @@ def fetch_relational_summary_statistics(data_dir=None, url=None, verbose=1):
         events: a csv file describing the paardigm
 
     """
+    name = 'relational-match_maps'
+    data_dir = _get_dataset_dir(name, data_dir=data_dir,
+                                verbose=verbose)
+    url = 'https://osf.io/xem54/download'
+    archive_path = _fetch_file(url, data_dir)
+    plop = _uncompress_file(archive_path)
+    effects = sorted(glob.glob(os.path.join(data_dir, name, '*effect*.nii.gz')))
+    variance = sorted(glob.glob(os.path.join(
+        data_dir, name, '*variance*.nii.gz')))
 
-    if url is None:
-        url = 'https://osf.io/xem54/download'
-
+    _subject_data = {'effect_imgs': effects,
+                     'variance_imgs': variance}
+    
+    
+    return Bunch(**_subject_data)
+    """
+    subjects = ['sub-%02d' % i for i in [
+        1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15]]
     imgs = "*.nii.gz"
     opts = {'uncompress': True}
-    dir_ = 'relational-match_maps'
-    filenames = [(os.path.join(dir_, name), url, opts) for img in imgs]
+    # filenames = [(os.path.join(dir_, name), url, opts) for name in imgs]
+    filenames = ['*.nii.gz']
 
     dataset_name = "relational_summary_statistics"
     data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
@@ -723,3 +737,4 @@ def fetch_relational_summary_statistics(data_dir=None, url=None, verbose=1):
 
     params = dict(list(zip(filenames, files)))
     return Bunch(**params)
+    """

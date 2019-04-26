@@ -134,8 +134,9 @@ def mixed_effects_likelihood_ratio_test(
         According to westfall-Young procedure, quantiles of this provide
         fwer-corrected thresholds. 
     """
+    from nilearn.input_data import NiftiMasker
     if mask_img is None:
-        masker = NiftiMasker(mask_strategy='background').fit(effect_maps)
+        masker = NiftiMasker(mask_strategy='background').fit(effects)
     else:
         masker = NiftiMasker(mask_img=mask_img).fit()
     

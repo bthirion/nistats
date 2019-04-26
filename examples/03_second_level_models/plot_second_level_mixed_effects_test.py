@@ -64,15 +64,12 @@ plotting.plot_glass_brain(
 
 ###########################################################################
 # Now, do the same with a mixed effects model that takes into acount first-level effects undertainty estimate
-from nilearn.input_data import NiftiMasker
-masker = NiftiMasker(mask_strategy='background').fit(effect_imgs)
-
 # the function below computes mixed effects + 1000 permutations to get
 # the distribution under the null
 
 from nistats.mixed_effects_model import mixed_effects_likelihood_ratio_test
 beta, variance, z_map, max_diff_z = mixed_effects_likelihood_ratio_test(
-    masker, effect_imgs, variance_imgs, design_matrix, contrast=[[1]])
+    effect_imgs, variance_imgs, design_matrix, contrast=[[1]])
 
 import numpy as np
 threshold = np.percentile(max_diff_z, 95)
