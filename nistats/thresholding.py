@@ -86,8 +86,7 @@ def _ari_hvalue(z_vals, alpha):
     if p_vals[0] > alpha:
         return n_samples
     slopes = (alpha - p_vals[: - 1]) / np.arange(n_samples, 1, -1)
-    i0 = np.argmax(slopes)
-    slope = slopes[i0]
+    slope = np.max(slopes)
     h = np.trunc(n_samples + (alpha - slope * n_samples) / slope)
     import matplotlib.pyplot as plt
     plt.plot(p_vals, 'o')
