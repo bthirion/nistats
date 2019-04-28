@@ -74,6 +74,30 @@ def _true_positive_fraction(z_vals, hommel_value, alpha):
     return proportion_true_discoveries
 
 
+def _ari_hvalue(z_vals, alpha):
+    """Compute the All-resolution inference h-value"""
+    if alpha < 0 or alpha > 1:
+        raise ValueError('alpha should be between 0 and 1')
+    z_vals_ = - np.sort(- z_vals)
+    p_vals = norm.sf(z_vals_)
+    n_samples = len(p_vals)
+    if p_vals[-1] < alpha:
+        return 0
+    if p_vals[0] > alpha:
+        return n_samples
+    slopes = (alpha - p_vals[: - 1]) / np.arange(n_samples, 1, -1)
+    i0 = np.argmax(slopes)
+    slope = slopes[i0]
+    h = np.trunc(n_samples + (alpha - slope * n_samples) / slope)
+    import matplotlib.pyplot as plt
+    plt.plot(p_vals, 'o')
+    plt.plot([n_samples - h, n_samples], [0, alpha])
+    plt.plot([0, n_samples], [0, 0], 'k')
+    plt.show(block=False)
+    return np.minimum(h, n_samples)
+
+    
+    
 def fdr_threshold(z_vals, alpha):
     """ return the Benjamini-Hochberg FDR threshold for the input z_vals
     
