@@ -74,8 +74,8 @@ def _true_positive_fraction(z_vals, hommel_value, alpha):
     return proportion_true_discoveries
 
 
-def _ari_hvalue(z_vals, alpha):
-    """Compute the All-resolution inference h-value"""
+def _ari_hvalue(z_vals, alpha, verbose=False):
+    """Compute the All-Resolution Inference h-value"""
     if alpha < 0 or alpha > 1:
         raise ValueError('alpha should be between 0 and 1')
     z_vals_ = - np.sort(- z_vals)
@@ -88,12 +88,40 @@ def _ari_hvalue(z_vals, alpha):
     slopes = (alpha - p_vals[: - 1]) / np.arange(n_samples, 1, -1)
     slope = np.max(slopes)
     h = np.trunc(n_samples + (alpha - slope * n_samples) / slope)
-    import matplotlib.pyplot as plt
-    plt.plot(p_vals, 'o')
-    plt.plot([n_samples - h, n_samples], [0, alpha])
-    plt.plot([0, n_samples], [0, 0], 'k')
-    plt.show(block=False)
+    if verbose:
+        import matplotlib.pyplot as plt
+        plt.plot(p_vals, 'o')
+        plt.plot([n_samples - h, n_samples], [0, alpha])
+        plt.plot([0, n_samples], [0, 0], 'k')
+        plt.show(block=False)
     return np.minimum(h, n_samples)
+
+
+def all_resolution_inference(z_vals, alpha):
+    """Returns the All-resolution inference threhold to the input z_vals
+    
+    Parameters
+    ----------
+    z_vals: array,
+            a set of z-variates from which the FDR is computed
+    alpha: float,
+           desired FDR control
+    
+    Returns
+    -------
+    threshold: float,
+               ARI-controling threshold
+    """
+    if alpha < 0 or alpha > 1:
+        raise ValueError('alpha should be between 0 and 1')
+    h = _ari_hvalue(z_vals, alpha, verbose=False)
+    z_vals_ = - np.sort(- z_vals)
+    p_vals = norm.sf(z_vals_)
+    pos = p_vals < alpha * np.arange(1, 1 + n_samples) / h
+    if pos.any():
+        return (z_vals_[pos][-1] - 1.e-12)
+    else:
+        return np.infty
 
     
     
@@ -193,7 +221,40 @@ def cluster_level_inference(stat_img, mask_img=None,
         proportion_true_discoveries)
     return proportion_true_discoveries_img
 
+def _cluster_td(cluster_pvals, h, alpha):
+    """"""
+    n = len(cluster_pvals)
+    k = h * 1. / alpha * min(cluster_pvals - alpha * np.arange(n) / h)
+    k = np.max(k, 0)
+    return k
+    
+def cluster_level_inference(stat_img=None, mask_img=None,
+                            threshold=3.,alpha=.05):
+    """report the proportion of truly active voxels for all clusters
+    defined by the input threshold. This 
+    """
+    h = _ari_hvalue(z_vals, alpha, verbose=False)
+    if mask_img is None:
+        masker = NiftiMasker(mask_strategy='background').fit(stat_img)
+    else:
+        masker = NiftiMasker(mask_img=mask_img).fit()
+    stats = np.ravel(masker.transform(stat_img))
+    
 
+    # embed it back to 3D grid
+    stat_map = masker.inverse_transform(stats).get_data()
+
+    # Extract connected components above threshold
+    label_map, n_labels = label(stat_map > threshold)
+    labels = label_map[masker.mask_img_.get_data() > 0]
+
+    for label_ in range(1, n_labels + 1):
+        # get the p-vals in the cluster
+        cluster_vals = norm.sf(- sorted(-stats[label_map == label_]))
+        cluster_td = _cluster_td(cluster_pvals, h, alpha)
+        proportion = cluster_td  * 1. / len(cluster_vals)
+        
+        
 def map_threshold(stat_img=None, mask_img=None, alpha=.001, threshold=3.,
                   height_control='fpr', cluster_threshold=0):
     """ Compute the required threshold level and return the thresholded map
@@ -240,6 +301,7 @@ def map_threshold(stat_img=None, mask_img=None, alpha=.001, threshold=3.,
     If the input image is not z-scaled (i.e. some z-transformed statistic)
     the computed threshold is not rigorous and likely meaningless
     """
+    # Check that height_control is correctly specified
     height_control_methods = ['fpr', 'fdr', 'bonferroni',
                               'all-resolution-inference', None]
     if height_control not in height_control_methods:
