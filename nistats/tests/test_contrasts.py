@@ -10,6 +10,7 @@ from nistats.first_level_model import run_glm
 from nistats.contrasts import (_fixed_effect_contrast,
                                compute_contrast,
                                expression_to_contrast_vector
+                               _fixed_effects,
                                )
 
 
@@ -142,3 +143,19 @@ def test_contrast_values():
     # Note that the values are not strictly equal,
     # this seems to be related to a bug in Mahalanobis
     assert_almost_equal(np.ravel(con.stat()), F_ref, 3)
+
+
+def test_low_level_fixed_effects():
+    # 
+    p = 100
+    X1, V1 = np.random.randn(p), np.ones(p)
+    Xf, Vf, tf = _fixed_effects([X1, 2 * X1], [V1, 4 * V1],
+                                precision_weighted=False)
+    assert_almost_equal(Xf, 1.5 * X1)
+    assert_almost_equal(Vf, 1.25 * V1)
+    assert_almost_equal(tf, Xf / np.sqrt(Vf))
+
+    Xw, Vw, tw = _fixed_effects([X1, 2 * X1], [V1, 4 * V1],
+                                precision_weighted=True)
+    assert_almost_equal(Xw, 1.2 * X1)
+    assert_almost_equal(Vw, .8 * V1)

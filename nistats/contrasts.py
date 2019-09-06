@@ -286,3 +286,71 @@ class Contrast(object):
 
     def __div__(self, scalar):
         return self.__rmul__(1 / float(scalar))
+
+
+def fixed_effects_img(contrast_imgs, variance_imgs, mask,
+                         precision_weighted=False):
+    """Compute the fixed effets given images of effects and variance
+
+    Parameters
+    ----------
+    contrast_imgs: list of Nifti1Images or strings
+              the input contrast images
+    variance_imgs: list of Nifti1Images or strings
+              the input variance images
+    mask: Nifti1Image or NiftiMasker instance,
+              mask image
+    precision_weighted: Bool, optional,
+              Whether the fixed effects estimates should be weighted by inverse
+              variance or not. Defaults to False.
+
+    Returns
+    -------
+    ffx_contrast_img: Nifti1Image,
+             the fixed effects contrast computed within the mask
+    ffx_variance_img: Nifti1Image,
+             the fixed effects variance computed within the mask
+    ffx_t_img: Nifti1Image,
+             the fixed effects t-test computed within the mask
+    """
+    from nilearn.input_data import NiftiMasker
+    if len(contrast_imgs) != len(variance_imgs):
+        raise ValueError(
+            'The number of contrast images (%d) differs from the number of '
+            'variance images (%d). ' % (len(contrast_imgs), len(variance_imgs)))
+
+    # instantiate a masker
+    if isinstance(mask, NiftiMasker):
+        masker = mask
+    else:
+        masker = NiftiMasker(mask_img=mask).fit()
+
+    vars = masker.transform(variance_imgs)
+    cons = masker.transform(contrast_imgs)
+
+    ffx_contrast, ffx_variance, ffx_t = _fixed_effects(
+        cons, vars, precision_weighted)
+
+    ffx_contrast_img = masker.inverse_transform(ffx_contrast)
+    ffx_variance_img = masker.inverse_transform(ffx_variance)
+    ffx_t_img = masker.inverse_transform(ffx_t)
+    return ffx_contrast_img, ffx_variance_img, ffx_t_img
+
+
+def _fixed_effects(contrasts, variances, precision_weighted):
+    """Compute the fixed effets given arrays of effects and variance
+    """
+    tiny = 1.e-16
+    con, var = np.asarray(contrasts), np.asarray(variances)
+    var = np.maximum(var, tiny)
+    #
+    if precision_weighted:
+        weights = 1. / var
+        ffx_var = 1. / np.sum(weights, 0)
+        ffx_con = np.sum(con * weights, 0) * ffx_var
+    else:
+        ffx_var = np.mean(var, 0) / len(variances) 
+        ffx_con = np.mean(con, 0)
+
+    ffx_stat = ffx_con / np.sqrt(ffx_var)
+    return ffx_con, ffx_var, ffx_stat

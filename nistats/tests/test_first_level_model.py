@@ -35,7 +35,7 @@ from nistats._utils.testing import (_create_fake_bids_dataset,
                                     _generate_fake_fmri_data,
                                     _write_fake_fmri_data,
                                     )
-
+from nistats.contrasts import fixed_effects_img
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 FUNCFILE = os.path.join(BASEDIR, 'functional.nii.gz')
@@ -56,6 +56,49 @@ def test_high_level_glm_one_session():
     z1 = single_session_model.compute_contrast(np.eye(rk)[:1])
     assert_true(isinstance(z1, Nifti1Image))
 
+
+def test_fixed_effects():
+    # New API
+    with InTemporaryDirectory():
+        shapes, rk = ((7, 8, 7, 15), (7, 8, 7, 16)), 3
+        mask, fmri_data, design_matrices = _write_fake_fmri_data(shapes, rk)
+        contrast = np.eye(rk)[1]
+        # session 1
+        multi_session_model = FirstLevelModel(mask_img=mask).fit(
+            fmri_data[0], design_matrices=design_matrices[:1])
+        dic1 = multi_session_model.compute_contrast(
+            contrast, output_type='all')
+
+        # session 2
+        multi_session_model = FirstLevelModel(mask_img=mask).fit(
+            fmri_data[1], design_matrices=design_matrices[1:])
+        dic2 = multi_session_model.compute_contrast(
+            contrast, output_type='all')
+
+        # fixed effects model
+        multi_session_model = FirstLevelModel(mask_img=mask).fit(
+            fmri_data, design_matrices=design_matrices)
+        ffx_dic = multi_session_model.compute_contrast(
+            contrast, output_type='all')
+
+        # manual version
+        contrasts = [dic1['effect_size'], dic2['effect_size']]
+        variance = [dic1['effect_variance'], dic2['effect_variance']]
+        
+        ffx_contrast, ffx_variance, ffx_stat = fixed_effects_img(
+            contrasts, variance, mask)
+
+        assert_almost_equal(
+            ffx_contrast.get_data(), ffx_dic['effect_size'].get_data())
+        assert_almost_equal(
+            ffx_variance.get_data(), ffx_dic['effect_variance'].get_data())
+        assert_almost_equal(
+            ffx_stat.get_data(), ffx_dic['stat'].get_data())
+
+        # ensure that using unbalanced effects size and variance images
+        # raises an error
+        assert_raises(ValueError, fixed_effects_img, contrasts * 2, variance,
+                      mask)
 
 def test_high_level_glm_with_data():
     # New API
@@ -525,3 +568,4 @@ def test_param_mask_deprecation_first_level_models_from_bids():
     for param_warning_ in raised_param_deprecation_warnings:
         assert str(param_warning_.message) == deprecation_msg
         assert param_warning_.category is DeprecationWarning
+
