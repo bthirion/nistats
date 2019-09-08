@@ -1,5 +1,6 @@
-"""Simple example of fixed effects fMRI model fitting
-================================================
+"""
+Example of explicit fixed effects fMRI model fitting
+====================================================
 
 This example illustrates how to 
 
