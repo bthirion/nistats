@@ -70,13 +70,13 @@ def test_fixed_effects():
             contrast, output_type='all')
 
         # session 2
-        multi_session_model = FirstLevelModel(mask_img=mask).fit(
+        multi_session_model.fit(
             fmri_data[1], design_matrices=design_matrices[1:])
         dic2 = multi_session_model.compute_contrast(
             contrast, output_type='all')
 
         # fixed effects model
-        multi_session_model = FirstLevelModel(mask_img=mask).fit(
+        multi_session_model.fit(
             fmri_data, design_matrices=design_matrices)
         ffx_dic = multi_session_model.compute_contrast(
             contrast, output_type='all')
@@ -84,7 +84,6 @@ def test_fixed_effects():
         # manual version
         contrasts = [dic1['effect_size'], dic2['effect_size']]
         variance = [dic1['effect_variance'], dic2['effect_variance']]
-        
         ffx_contrast, ffx_variance, ffx_stat = fixed_effects_img(
             contrasts, variance, mask)
 
@@ -96,10 +95,22 @@ def test_fixed_effects():
             ffx_stat.get_data(), ffx_dic['stat'].get_data())
 
         # ensure that using unbalanced effects size and variance images
-        # raises an error
+        # raises an error
         assert_raises(ValueError, fixed_effects_img, contrasts * 2, variance,
                       mask)
+        del (design_matrices,
+             fmri_data,
+             mask,
+             multi_session_model,
+             rk,
+             shapes,
+             variance,
+             contrasts,
+             ffx_contrast, ffx_variance, ffx_stat,
+             dic1, dic2, ffx_dic,
+         )
 
+        
 def test_high_level_glm_with_data():
     # New API
     with InTemporaryDirectory():
