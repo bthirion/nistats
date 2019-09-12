@@ -29,7 +29,7 @@ def test_mixed_effects_lrt():
         for contrast in [np.array([[1]])]:
             beta, variance_, z_map, max_diff_z =\
                 mixed_effects_likelihood_ratio_test(
-                    effects, variance, design_matrix, contrast, mask,
+                    effects, variance, design_matrix, contrast, mask_img=mask,
                     n_perm=n_perm, n_iter=5, n_jobs=1)
             for img in [beta, variance_, z_map]:
                 assert_true(isinstance(img, Nifti1Image))
@@ -75,6 +75,7 @@ def test_fmri_inputs():
         #              masker, effects, variance, design_matrix, 'a')
         # Fail when design matrix is not correct size
         design_matrix_ = pd.DataFrame({'intercept': np.ones(n_subjects + 1)}) 
+        
         assert_raises(ValueError, mixed_effects_likelihood_ratio_test,
                       effects, variance, design_matrix_, contrast, mask)
 
@@ -88,3 +89,4 @@ def test_fmri_inputs():
                       [FUNCFILE], variance, design_matrix, contrast, mask)
         assert_raises(DimensionError, mixed_effects_likelihood_ratio_test,
                       FUNCFILE, [variance], design_matrix, contrast, mask)
+        

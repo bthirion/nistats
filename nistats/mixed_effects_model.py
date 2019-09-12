@@ -96,10 +96,14 @@ def _permuted_max_llr(X, contrast, Y, V1, n_iter):
 
 
 def permuted_mixed_effects(
-        tested_var, target_vars, model_intercept=model_intercept,
-        n_perm=n_perm, two_sided_test=two_sided_test,
-        random_state=random_state, n_jobs=n_jobs, verbose=max(0, verbose - 1)):
-    """ """
+        tested_var, confoudning_vars, target_vars, variance_target_vars,
+        model_intercept=True,
+        n_perm=1000, two_sided_test=True,
+        random_state=42, n_jobs=1, verbose=0):
+    """ 
+
+
+    """
     # initialize the seed of the random generator
     rng = check_random_state(random_state)
 
@@ -141,6 +145,15 @@ def permuted_mixed_effects(
         else:
             confounding_vars = np.ones((n_samples, 1))
 
+    X = np.vstack((tested_vars, confounding_vars))
+    contrast = np.zeros(X.shape[1])
+    contrast[:tested_vars.shape[1]] = 1
+    Y = target_vars
+    V1 = variance_target_vars
+
+    
+    """
+    #-------------------------------------------------------------------
     ### OLS regression on original data
     if confounding_vars is not None:
         # step 1: extract effect of covars from target vars
@@ -236,13 +249,6 @@ def permuted_mixed_effects(
 
     return - np.log10(pvals), scores_original_data.T, h0_fmax[0]
 
-
-
-
-
-
-
-    X = design_matrix.values
     X_null = X - np.dot(np.dot(X, contrast), np.linalg.pinv(contrast))
     # get parameters estimates for the full model
     beta_, V2, log_likelihood = mixed_model_inference(X, Y, V1, n_iter=n_iter)
@@ -265,10 +271,13 @@ def permuted_mixed_effects(
     beta = masker.inverse_transform(beta_)
     z_map = masker.inverse_transform(z_)
     second_level_variance = masker.inverse_transform(V2)
-    return (beta, second_level_variance, z_map, max_diff_z)
+    """
+    return mixed_effects_likelihood_ratio_test(
+        target_vars, variance_target_vars, X, contrast,
+        mask_img=None, #  ???
+        n_perm=n_perm, n_iter=n_iter, n_jobs=n_jobs)
 
-    
-    
+
 def mixed_effects_likelihood_ratio_test(
         effects, variance, design_matrix, contrast, mask_img=None,
         n_perm=1000, n_iter=5, n_jobs=1):
