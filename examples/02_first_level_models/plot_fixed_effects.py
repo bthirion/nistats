@@ -1,8 +1,9 @@
-"""
-Example of explicit fixed effects fMRI model fitting
+"""Example of explicit fixed effects fMRI model fitting
 ====================================================
 
-This example illustrates how to 
+This example illustrates how to run a fixed effects model based on
+pre-computed statistics. This is helpful when the initial models
+have to be fit separately.
 
 For details on the data, please see:
 
@@ -12,15 +13,15 @@ JB. Functional segregation of cortical language areas by sentence
 repetition. Hum Brain Mapp. 2006: 27:360--371.
 http://www.pubmedcentral.nih.gov/articlerender.fcgi?artid=2653076#R11
 
-Please see `plot_fiac_analysis.py` example for details.  The main
+Please see `../plot_fiac_analysis.py` example for details.  The main
 difference is that the fixed-effects model is run explicitly here,
 after GLM fitting on two sessions.
 
 """
 
 ###############################################################################
-# Create a write directory to work
-# it will be a 'results' subdirectory of the current directory.
+# Create a write sub-directory named 'results'
+# 
 from os import mkdir, path, getcwd
 write_dir = path.join(getcwd(), 'results')
 if not path.exists(write_dir):
@@ -30,7 +31,7 @@ if not path.exists(write_dir):
 # Prepare data and analysis parameters
 # --------------------------------------
 # 
-# Note that there are two sessions
+# Inspecting 'data', we note that there are two sessions
 
 from nistats import datasets
 data = datasets.fetch_fiac_first_level()
@@ -78,26 +79,32 @@ from nilearn import plotting
 cut_coords = [-129, -126, 49]
 
 fmri_glm = fmri_glm.fit(fmri_img[0], design_matrices=design_matrices[0])
-dic1 = fmri_glm.compute_contrast(contrast_val, output_type='all')
+summary_statistics_session1 = fmri_glm.compute_contrast(
+    contrast_val, output_type='all')
 plotting.plot_stat_map(
-    dic1['z_score'], bg_img=mean_img_, threshold=3.0, cut_coords=cut_coords,
+    summary_statistics_session1['z_score'],
+    bg_img=mean_img_, threshold=3.0, cut_coords=cut_coords,
     title='%s, first session' % contrast_id)
 
 #########################################################################
 # Statistics for the second session
 
 fmri_glm = fmri_glm.fit(fmri_img[1], design_matrices=design_matrices[1])
-dic2 = fmri_glm.compute_contrast(contrast_val, output_type='all')
+summary_statistics_session2 = fmri_glm.compute_contrast(
+    contrast_val, output_type='all')
 plotting.plot_stat_map(
-    dic2['z_score'], bg_img=mean_img_, threshold=3.0, cut_coords=cut_coords,
+    summary_statistics_session2['z_score'],
+    bg_img=mean_img_, threshold=3.0, cut_coords=cut_coords,
     title='%s, second session' % contrast_id)
 
 #########################################################################
 # Fixed effects statistics
 from nistats.contrasts import fixed_effects_img
 
-contrast_imgs = [dic1['effect_size'], dic2['effect_size']]
-variance_imgs = [dic1['effect_variance'], dic2['effect_variance']]
+contrast_imgs = [summary_statistics_session1['effect_size'],
+                 summary_statistics_session2['effect_size']]
+variance_imgs = [summary_statistics_session1['effect_variance'],
+                 summary_statistics_session2['effect_variance']]
 
 ffx_contrast, ffx_variance, ffx_stat = fixed_effects_img(
     contrast_imgs, variance_imgs, data['mask'])
