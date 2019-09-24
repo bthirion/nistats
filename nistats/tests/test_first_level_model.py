@@ -57,8 +57,8 @@ def test_high_level_glm_one_session():
     assert_true(isinstance(z1, Nifti1Image))
 
 
-def test_fixed_effects():
-    # New API
+def test_explicit_fixed_effects():
+    """ tests the fixed effects performed manyally/explicitly"""
     with InTemporaryDirectory():
         shapes, rk = ((7, 8, 7, 15), (7, 8, 7, 16)), 3
         mask, fmri_data, design_matrices = _write_fake_fmri_data(shapes, rk)
@@ -579,4 +579,3 @@ def test_param_mask_deprecation_first_level_models_from_bids():
     for param_warning_ in raised_param_deprecation_warnings:
         assert str(param_warning_.message) == deprecation_msg
         assert param_warning_.category is DeprecationWarning
-

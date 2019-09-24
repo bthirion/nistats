@@ -19,14 +19,6 @@ after GLM fitting on two sessions.
 
 """
 
-###############################################################################
-# Create a write sub-directory named 'results'
-# 
-from os import mkdir, path, getcwd
-write_dir = path.join(getcwd(), 'results')
-if not path.exists(write_dir):
-    mkdir(write_dir)
-
 #########################################################################
 # Prepare data and analysis parameters
 # --------------------------------------
@@ -62,21 +54,13 @@ fmri_glm = FirstLevelModel(mask_img=data['mask'], smoothing_fwhm=5,
 # Compute fixed effects of the two runs and compute related images
 # For this, we first define the contrasts as we would do for a single session
 n_columns = design_matrices[0].shape[1]
-
-def pad_vector(contrast_, n_columns):
-    """A small routine to append zeros in contrast vectors"""
-    return np.hstack((contrast_, np.zeros(n_columns - len(contrast_))))
-
-#########################################################################
-# Contrast specification
-
-contrast_id = 'DSt_minus_SSt'
-contrast_val = pad_vector([-1, -1, 1, 1], n_columns)
+contrast_val = np.hstack(([-1, -1, 1, 1], np.zeros(n_columns - 4)))
 
 #########################################################################
 # Statistics for the first session
 from nilearn import plotting
 cut_coords = [-129, -126, 49]
+contrast_id = 'DSt_minus_SSt'
 
 fmri_glm = fmri_glm.fit(fmri_img[0], design_matrices=design_matrices[0])
 summary_statistics_session1 = fmri_glm.compute_contrast(
