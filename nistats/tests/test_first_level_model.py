@@ -58,7 +58,7 @@ def test_high_level_glm_one_session():
 
 
 def test_explicit_fixed_effects():
-    """ tests the fixed effects performed manyally/explicitly"""
+    """ tests the fixed effects performed manually/explicitly"""
     with InTemporaryDirectory():
         shapes, rk = ((7, 8, 7, 15), (7, 8, 7, 16)), 3
         mask, fmri_data, design_matrices = _write_fake_fmri_data(shapes, rk)

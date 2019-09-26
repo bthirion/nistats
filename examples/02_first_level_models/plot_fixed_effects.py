@@ -13,7 +13,7 @@ JB. Functional segregation of cortical language areas by sentence
 repetition. Hum Brain Mapp. 2006: 27:360--371.
 http://www.pubmedcentral.nih.gov/articlerender.fcgi?artid=2653076#R11
 
-Please see `../plot_fiac_analysis.py` example for details.  The main
+Please see `plot_fiac_analysis.py` example for details.  The main
 difference is that the fixed-effects model is run explicitly here,
 after GLM fitting on two sessions.
 
@@ -68,7 +68,7 @@ summary_statistics_session1 = fmri_glm.compute_contrast(
 plotting.plot_stat_map(
     summary_statistics_session1['z_score'],
     bg_img=mean_img_, threshold=3.0, cut_coords=cut_coords,
-    title='%s, first session' % contrast_id)
+    title='{0}, first session'.format(contrast_id))
 
 #########################################################################
 # Statistics for the second session
@@ -79,7 +79,7 @@ summary_statistics_session2 = fmri_glm.compute_contrast(
 plotting.plot_stat_map(
     summary_statistics_session2['z_score'],
     bg_img=mean_img_, threshold=3.0, cut_coords=cut_coords,
-    title='%s, second session' % contrast_id)
+    title='{0}, second session'.format(contrast_id))
 
 #########################################################################
 # Fixed effects statistics
@@ -94,7 +94,7 @@ ffx_contrast, ffx_variance, ffx_stat = fixed_effects_img(
     contrast_imgs, variance_imgs, data['mask'])
 plotting.plot_stat_map(
     ffx_stat, bg_img=mean_img_, threshold=3.0, cut_coords=cut_coords,
-    title='%s, fixed effects' % contrast_id )
+    title='{0}, fixed effects'.format(contrast_id))
 
 #########################################################################
 # Not unexpectedly, the fixed effects version looks displays higher peaks than the input sessions. Computing fixed effects enhances the signal-to-noise ratio of the resulting brain maps
