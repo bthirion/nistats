@@ -288,7 +288,7 @@ class Contrast(object):
         return self.__rmul__(1 / float(scalar))
 
 
-def fixed_effects_img(contrast_imgs, variance_imgs, mask,
+def fixed_effects_img(contrast_imgs, variance_imgs, mask=None,
                          precision_weighted=False):
     """Compute the fixed effets given images of effects and variance
 
@@ -298,8 +298,8 @@ def fixed_effects_img(contrast_imgs, variance_imgs, mask,
               the input contrast images
     variance_imgs: list of Nifti1Images or strings
               the input variance images
-    mask: Nifti1Image or NiftiMasker instance,
-              mask image
+    mask: Nifti1Image or NiftiMasker instance or None, optional,
+              mask image. If None, it is recomputed from contrast_imgs
     precision_weighted: Bool, optional,
               Whether the fixed effects estimates should be weighted by inverse
               variance or not. Defaults to False.
@@ -322,6 +322,8 @@ def fixed_effects_img(contrast_imgs, variance_imgs, mask,
     # instantiate a masker
     if isinstance(mask, NiftiMasker):
         masker = mask
+    elif mask is None:
+        masker = NiftiMasker().fit(contrast_imgs)
     else:
         masker = NiftiMasker(mask_img=mask).fit()
 

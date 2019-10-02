@@ -94,6 +94,16 @@ def test_explicit_fixed_effects():
         assert_almost_equal(
             ffx_stat.get_data(), ffx_dic['stat'].get_data())
 
+        # test without mask variable
+        ffx_contrast, ffx_variance, ffx_stat = fixed_effects_img(
+            contrasts, variance)
+        assert_almost_equal(
+            ffx_contrast.get_data(), ffx_dic['effect_size'].get_data())
+        assert_almost_equal(
+            ffx_variance.get_data(), ffx_dic['effect_variance'].get_data())
+        assert_almost_equal(
+            ffx_stat.get_data(), ffx_dic['stat'].get_data())
+        
         # ensure that using unbalanced effects size and variance images
         # raises an error
         assert_raises(ValueError, fixed_effects_img, contrasts * 2, variance,
