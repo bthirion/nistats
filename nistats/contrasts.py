@@ -321,7 +321,7 @@ def fixed_effects_img(contrast_imgs, variance_imgs, mask=None,
 
     # instantiate a masker
     if isinstance(mask, NiftiMasker):
-        masker = mask
+        masker = mask.fit()
     elif mask is None:
         masker = NiftiMasker().fit(contrast_imgs)
     else:
