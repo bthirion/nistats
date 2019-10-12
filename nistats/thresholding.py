@@ -74,15 +74,18 @@ def _true_positive_fraction(z_vals, hommel_value, alpha):
     return proportion_true_discoveries
 
 
-def _ari_hvalue(z_vals, alpha, verbose=False):
+def _hommel_value(z_vals, alpha, verbose=False):
     """Compute the All-Resolution Inference h-value"""
     if alpha < 0 or alpha > 1:
         raise ValueError('alpha should be between 0 and 1')
     z_vals_ = - np.sort(- z_vals)
     p_vals = norm.sf(z_vals_)
     n_samples = len(p_vals)
-    if p_vals[-1] < alpha:
-        return 0
+    
+    #if p_vals[-1] < alpha:
+    #    return 0
+    if len(p_vals) == 1:
+        return p_vals[0] > alpha
     if p_vals[0] > alpha:
         return n_samples
     slopes = (alpha - p_vals[: - 1]) / np.arange(n_samples, 1, -1)
@@ -90,6 +93,7 @@ def _ari_hvalue(z_vals, alpha, verbose=False):
     h = np.trunc(n_samples + (alpha - slope * n_samples) / slope)
     if verbose:
         import matplotlib.pyplot as plt
+        plt.figure()
         plt.plot(p_vals, 'o')
         plt.plot([n_samples - h, n_samples], [0, alpha])
         plt.plot([0, n_samples], [0, 0], 'k')
@@ -97,8 +101,8 @@ def _ari_hvalue(z_vals, alpha, verbose=False):
     return np.minimum(h, n_samples)
 
 
-def all_resolution_inference(z_vals, alpha):
-    """Returns the All-resolution inference threhold to the input z_vals
+def _all_resolution_inference(z_vals, alpha):
+    """Returns the All-resolution inference threshold to the input z_vals
     
     Parameters
     ----------
@@ -114,7 +118,8 @@ def all_resolution_inference(z_vals, alpha):
     """
     if alpha < 0 or alpha > 1:
         raise ValueError('alpha should be between 0 and 1')
-    h = _ari_hvalue(z_vals, alpha, verbose=False)
+    h = _hommel_value(z_vals, alpha, verbose=False)
+    n_samples = len(z_vals)
     z_vals_ = - np.sort(- z_vals)
     p_vals = norm.sf(z_vals_)
     pos = p_vals < alpha * np.arange(1, 1 + n_samples) / h
@@ -123,8 +128,34 @@ def all_resolution_inference(z_vals, alpha):
     else:
         return np.infty
 
+
+def _true_positive_fraction(z_vals, h, alpha):
+    """Given a bunch of z-avalues, return the true positive fraction
+
+    Parameters
+    ----------
+    z_vals: array,
+            a set of z-variates from which the FDR is computed
+    h: int, 
+       the Hommel value, used in the computations
+    alpha: float,
+           desired FDR control
     
-    
+    Returns
+    -------
+    threshold: float,
+               Estimated true positive fraction in the set of values
+    """
+    z_vals_ = - np.sort(- z_vals)
+    p_vals = norm.sf(z_vals_)
+    n_samples = len(p_vals)
+    c = np.ceil((h * p_vals) / alpha)
+    unique_c, counts = np.unique(c, return_counts=True)
+    criterion = 1 - unique_c + np.cumsum(counts)
+    ptd = np.maximum(0, criterion.max() / n_samples)
+    return ptd
+
+
 def fdr_threshold(z_vals, alpha):
     """ return the Benjamini-Hochberg FDR threshold for the input z_vals
     
@@ -221,40 +252,44 @@ def cluster_level_inference(stat_img, mask_img=None,
         proportion_true_discoveries)
     return proportion_true_discoveries_img
 
-def _cluster_td(cluster_pvals, h, alpha):
-    """"""
-    n = len(cluster_pvals)
-    k = h * 1. / alpha * min(cluster_pvals - alpha * np.arange(n) / h)
-    k = np.max(k, 0)
-    return k
-    
-def cluster_level_inference(stat_img=None, mask_img=None,
+
+def cluster_level_inference(stat_img, mask_img=None,
                             threshold=3.,alpha=.05):
     """report the proportion of truly active voxels for all clusters
-    defined by the input threshold. This 
+    defined by the input threshold.
+
     """
-    h = _ari_hvalue(z_vals, alpha, verbose=False)
+    if not isinstance(threshold, list):
+        threshold = [threshold]
+
+    from nilearn.image import math_img
     if mask_img is None:
         masker = NiftiMasker(mask_strategy='background').fit(stat_img)
     else:
         masker = NiftiMasker(mask_img=mask_img).fit()
     stats = np.ravel(masker.transform(stat_img))
+    h = _hommel_value(stats, alpha, verbose=False)
     
-
     # embed it back to 3D grid
     stat_map = masker.inverse_transform(stats).get_data()
 
-    # Extract connected components above threshold
-    label_map, n_labels = label(stat_map > threshold)
-    labels = label_map[masker.mask_img_.get_data() > 0]
+    ## Extract connected components above threshold
+    ptd_img = math_img('0. * img', img=stat_img)
+    ptd = masker.transform(ptd_img).ravel()
 
-    for label_ in range(1, n_labels + 1):
-        # get the p-vals in the cluster
-        cluster_vals = norm.sf(- sorted(-stats[label_map == label_]))
-        cluster_td = _cluster_td(cluster_pvals, h, alpha)
-        proportion = cluster_td  * 1. / len(cluster_vals)
-        
-        
+    for threshold_  in sorted(threshold): 
+        label_map, n_labels = label(stat_map > threshold_)
+        labels = label_map[masker.mask_img_.get_data() > 0]
+        for label_ in range(1, n_labels + 1):
+            # get the p-vals in the cluster
+            cluster_vals = stats[labels == label_] # norm.sf(sorted(-))
+            proportion = _true_positive_fraction(cluster_vals, h, alpha)
+            ptd[labels == label_] = proportion
+
+    ptd_img = masker.inverse_transform(ptd)
+    return ptd_img
+
+
 def map_threshold(stat_img=None, mask_img=None, alpha=.001, threshold=3.,
                   height_control='fpr', cluster_threshold=0):
     """ Compute the required threshold level and return the thresholded map
@@ -271,12 +306,12 @@ def map_threshold(stat_img=None, mask_img=None, alpha=.001, threshold=3.,
         mask image
 
     alpha: float or list, optional
-        number controlling the thresholding (either a p-value or q-value).
+        number controling the thresholding (either a p-value or q-value).
         Its actual meaning depends on the height_control parameter.
-        This function translates alpha to a z-scale threshold.
+        This function translates alpha to a z-scale threshold.    
 
     threshold: float, optional
-       desired threshold in z-scale.
+        desired threshold in z-scale
        This is used only if height_control is None
 
     height_control: string, or None optional

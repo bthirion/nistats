@@ -67,5 +67,4 @@ plotting.plot_stat_map(
     z_map, threshold=p001_uncorrected, colorbar=True, display_mode='z',
     title='group left-right button press (uncorrected p < 0.001)')
 
-
 plotting.show()
