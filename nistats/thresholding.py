@@ -81,9 +81,7 @@ def _hommel_value(z_vals, alpha, verbose=False):
     z_vals_ = - np.sort(- z_vals)
     p_vals = norm.sf(z_vals_)
     n_samples = len(p_vals)
-    
-    #if p_vals[-1] < alpha:
-    #    return 0
+
     if len(p_vals) == 1:
         return p_vals[0] > alpha
     if p_vals[0] > alpha:
@@ -99,34 +97,6 @@ def _hommel_value(z_vals, alpha, verbose=False):
         plt.plot([0, n_samples], [0, 0], 'k')
         plt.show(block=False)
     return np.minimum(h, n_samples)
-
-
-def _all_resolution_inference(z_vals, alpha):
-    """Returns the All-resolution inference threshold to the input z_vals
-    
-    Parameters
-    ----------
-    z_vals: array,
-            a set of z-variates from which the FDR is computed
-    alpha: float,
-           desired FDR control
-    
-    Returns
-    -------
-    threshold: float,
-               ARI-controling threshold
-    """
-    if alpha < 0 or alpha > 1:
-        raise ValueError('alpha should be between 0 and 1')
-    h = _hommel_value(z_vals, alpha, verbose=False)
-    n_samples = len(z_vals)
-    z_vals_ = - np.sort(- z_vals)
-    p_vals = norm.sf(z_vals_)
-    pos = p_vals < alpha * np.arange(1, 1 + n_samples) / h
-    if pos.any():
-        return (z_vals_[pos][-1] - 1.e-12)
-    else:
-        return np.infty
 
 
 def _true_positive_fraction(z_vals, h, alpha):
