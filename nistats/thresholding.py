@@ -228,6 +228,33 @@ def cluster_level_inference(stat_img, mask_img=None,
     """report the proportion of truly active voxels for all clusters
     defined by the input threshold.
 
+    Parameters
+    ----------
+    stat_img : Niimg-like object or None, optional
+       statistical image (presumably in z scale)
+  
+    mask_img : Niimg-like object, optional,
+        mask image
+
+    threshold: float, optional
+       cluster-forming threshold in z-scale.
+  
+    alpha: float or list, optional
+        level of control on the true positive rate, aka true dsicovery
+        proportion
+
+    Returns
+    -------
+    ptd_img: Nifti1Image,
+        the statistical map that gives the true positive
+
+    Note
+    ----
+    This implements the method described in:
+
+    Rosenblatt JD, Finos L, Weeda WD, Solari A, Goeman JJ. All-Resolutions
+    Inference for brain imaging. Neuroimage. 2018 Nov 1;181:786-796. doi:
+    10.1016/j.neuroimage.2018.07.060
     """
     if not isinstance(threshold, list):
         threshold = [threshold]
