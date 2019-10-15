@@ -154,3 +154,27 @@ def test_all_resolution_inference():
                                      verbose=True)
     
     
+
+def test_all_resolution_inference():
+    shape = (9, 10, 11)
+    p = np.prod(shape)
+    data = norm.isf(np.linspace(1. / p, 1. - 1. / p, p)).reshape(shape)
+    alpha = .001
+    data[2:4, 5:7, 6:8] = 5.
+    stat_img = nib.Nifti1Image(data, np.eye(4))
+    mask_img = nib.Nifti1Image(np.ones(shape), np.eye(4))
+
+    # test 1
+    th_map = cluster_level_inference(stat_img, threshold=3 ,alpha=.05)
+    vals = th_map.get_data()
+    assert_equal(np.sum(vals > 0), 8)
+
+    # test 1
+    th_map = cluster_level_inference(stat_img, threshold=6 ,alpha=.05)
+    vals = th_map.get_data()
+    assert_equal(np.sum(vals > 0), 0)
+
+    # test 3
+    th_map = cluster_level_inference(stat_img, threshold=[3, 6] ,alpha=.05)
+    vals = th_map.get_data()
+    assert_equal(np.sum(vals > 0), 8)
