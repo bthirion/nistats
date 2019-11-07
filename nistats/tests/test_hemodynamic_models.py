@@ -133,7 +133,7 @@ def test_sample_condition_3():
     """ Test the experimental condition sampling -- oversampling=10
     """
     condition = ([1, 20, 36.5], [2, 2, 2], [1, 1, 1])
-    frame_times = np.linspace(0, 49, 50)
+    frame_times = np.linspace(0, 49, 50) 
     reg, rf = _sample_condition(condition, frame_times, oversampling=10,
                                 min_onset=0)
     assert_almost_equal(reg.sum(), 60.)
@@ -244,6 +244,7 @@ def test_make_regressor_3():
     reg, reg_names = compute_regressor(condition, hrf_model, frame_times,
                                        fir_delays=np.arange(4))
     assert_array_equal(np.sum(reg, 0), np.array([3, 3, 3, 3]))
+
     assert len(reg_names) == 4
     reg_, reg_names_ = compute_regressor(condition, hrf_model, frame_times,
                                          fir_delays=np.arange(4),
