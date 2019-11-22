@@ -46,14 +46,15 @@ conditions = behavioral['labels'].values
 sessions = behavioral['chunks'].values
 unique_session = behavioral['chunks'].unique()
 
-# fMRI data
+# fMRI data: a unique file for all sessions
 func_filename = haxby_dataset.func[0]
     
 #############################################################################
 # Build a proper event structure for each session
 # -----------------------------------------------
 import numpy as np
-events = {} # will take  the form of a dictionary of Dataframes, one per session
+events = {}
+# events will take  the form of a dictionary of Dataframes, one per session
 for session in unique_session:
     # get the condition label per session
     conditions_session = conditions[sessions == session]
@@ -98,26 +99,6 @@ for session in np.unique(sessions):
         z_maps.append(glm.compute_contrast(condition))
         condition_idx.append(condition)
         session_idx.append(session)
-
-"""
-#########################################################################
-# Generating a report
-# -------------------
-# Since we have already computed the FirstLevelModel and
-# and have the contrast, we can quickly create a summary report.
-from nistats.reporting import make_glm_report
-
-report = make_glm_report(events_session,
-                         contrasts,
-                         bg_img=mean_img_,
-                         )
-
-#########################################################################
-# We have several ways to access the report:
-
-# report  # This report can be viewed in a notebook
-report.open_in_browser()
-"""
         
 #############################################################################
 # Transform the maps to an array of values
