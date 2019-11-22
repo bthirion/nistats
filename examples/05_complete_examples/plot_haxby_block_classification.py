@@ -99,6 +99,29 @@ for session in np.unique(sessions):
         z_maps.append(glm.compute_contrast(condition))
         condition_idx.append(condition)
         session_idx.append(session)
+
+#########################################################################
+# Generating a report
+# -------------------
+# Since we have already computed the FirstLevelModel and
+# and have the contrast, we can quickly create a summary report.
+from nistats.reporting import make_glm_report
+from nilearn.image import mean_img
+
+mean_img_ = mean_img(func_filename)
+contrasts = dict([(condition, condition) for condition in conditions])
+report = make_glm_report(glm,
+                         contrasts,
+                         bg_img=mean_img_,
+                         )
+
+#########################################################################
+# We have several ways to access the report:
+
+# report  # This report can be viewed in a notebook
+# report.save_as_html('report.html')
+report.open_in_browser()
+
         
 #############################################################################
 # Transform the maps to an array of values
@@ -152,6 +175,3 @@ print("Classification accuracy: %.4f / Chance level: %f" %
       (classification_accuracy, 1. / len(np.unique(condition_idx))))
 # Classification accuracy:  0.375 / Chance level: 0.125
 
-
-
-plotting.show()
