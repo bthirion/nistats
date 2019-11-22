@@ -21,7 +21,7 @@ To run this example, you must launch IPython via ``ipython
 """
 
 ##############################################################################
-# Fetch example KHaxby dataset
+# Fetch example Haxby dataset
 # ----------------------------
 # We download the Haxby dataset
 # This is a study of visual obkect category representation
@@ -88,9 +88,14 @@ glm = FirstLevelModel(t_r=TR,
                       smoothing_fwhm=4,
                       memory="nilearn_cache")
 
-for session in np.unique(sessions):
-    print(session)
+##############################################################################
+# Run the glm on data from each session
+# -------------------------------------    
+for session in unique_session:
+    # grab the fmri data for that particular session
     fmri_session = index_img(func_filename, sessions == session)
+
+    # fit the glm
     glm.fit(fmri_session, events=events[session])
 
     # set up contrasts: one per condition
@@ -118,9 +123,9 @@ report = make_glm_report(glm,
 #########################################################################
 # We have several ways to access the report:
 
-# report  # This report can be viewed in a notebook
+report  # This report can be viewed in a notebook
 # report.save_as_html('report.html')
-report.open_in_browser()
+# report.open_in_browser()
 
         
 #############################################################################
@@ -129,7 +134,8 @@ report.open_in_browser()
 from nilearn.input_data import NiftiMasker
 
 # no need to standardize or smooth the data
-masker = NiftiMasker(mask_img=haxby_dataset.mask, memory="nilearn_cache", memory_level=1)
+masker = NiftiMasker(mask_img=haxby_dataset.mask, memory="nilearn_cache",
+                     memory_level=1)
 X = masker.fit_transform(z_maps)
 
 #############################################################################
