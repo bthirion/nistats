@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression
 from nistats.first_level_model import run_glm
 from nistats.contrasts import (_fixed_effect_contrast,
                                compute_contrast,
-                               expression_to_contrast_vector
+                               expression_to_contrast_vector,
                                _fixed_effects,
                                )
 
