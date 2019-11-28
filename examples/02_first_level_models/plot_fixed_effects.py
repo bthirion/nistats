@@ -13,7 +13,7 @@ JB. Functional segregation of cortical language areas by sentence
 repetition. Hum Brain Mapp. 2006: 27:360--371.
 http://www.pubmedcentral.nih.gov/articlerender.fcgi?artid=2653076#R11
 
-Please see :doc:`Simple example of two-session fMRI model fitting
+Please see `Simple example of two-session fMRI model fitting
 <https://nistats.github.io/auto_examples/02_first_level_models/plot_fiac_analysis.html>`
 example for details.  The main difference is that
 the fixed-effects model is run explicitly here,
