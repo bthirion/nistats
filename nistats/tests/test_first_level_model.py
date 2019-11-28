@@ -35,7 +35,7 @@ from nistats._utils.testing import (_create_fake_bids_dataset,
                                     _generate_fake_fmri_data,
                                     _write_fake_fmri_data,
                                     )
-from nistats.contrasts import fixed_effects_img
+from nistats.contrasts import compute_fixed_effects
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 FUNCFILE = os.path.join(BASEDIR, 'functional.nii.gz')
@@ -78,35 +78,35 @@ def test_explicit_fixed_effects():
         # fixed effects model
         multi_session_model.fit(
             fmri_data, design_matrices=design_matrices)
-        ffx_dic = multi_session_model.compute_contrast(
+        fixed_fx_dic = multi_session_model.compute_contrast(
             contrast, output_type='all')
 
         # manual version
         contrasts = [dic1['effect_size'], dic2['effect_size']]
         variance = [dic1['effect_variance'], dic2['effect_variance']]
-        ffx_contrast, ffx_variance, ffx_stat = fixed_effects_img(
+        fixed_fx_contrast, fixed_fx_variance, fixed_fx_stat = compute_fixed_effects(
             contrasts, variance, mask)
 
         assert_almost_equal(
-            ffx_contrast.get_data(), ffx_dic['effect_size'].get_data())
+            fixed_fx_contrast.get_data(), fixed_fx_dic['effect_size'].get_data())
         assert_almost_equal(
-            ffx_variance.get_data(), ffx_dic['effect_variance'].get_data())
+            fixed_fx_variance.get_data(), fixed_fx_dic['effect_variance'].get_data())
         assert_almost_equal(
-            ffx_stat.get_data(), ffx_dic['stat'].get_data())
+            fixed_fx_stat.get_data(), fixed_fx_dic['stat'].get_data())
 
         # test without mask variable
-        ffx_contrast, ffx_variance, ffx_stat = fixed_effects_img(
+        fixed_fx_contrast, fixed_fx_variance, fixed_fx_stat = compute_fixed_effects(
             contrasts, variance)
         assert_almost_equal(
-            ffx_contrast.get_data(), ffx_dic['effect_size'].get_data())
+            fixed_fx_contrast.get_data(), fixed_fx_dic['effect_size'].get_data())
         assert_almost_equal(
-            ffx_variance.get_data(), ffx_dic['effect_variance'].get_data())
+            fixed_fx_variance.get_data(), fixed_fx_dic['effect_variance'].get_data())
         assert_almost_equal(
-            ffx_stat.get_data(), ffx_dic['stat'].get_data())
+            fixed_fx_stat.get_data(), fixed_fx_dic['stat'].get_data())
         
         # ensure that using unbalanced effects size and variance images
         # raises an error
-        assert_raises(ValueError, fixed_effects_img, contrasts * 2, variance,
+        assert_raises(ValueError, compute_fixed_effects, contrasts * 2, variance,
                       mask)
         del (design_matrices,
              fmri_data,
@@ -116,8 +116,8 @@ def test_explicit_fixed_effects():
              shapes,
              variance,
              contrasts,
-             ffx_contrast, ffx_variance, ffx_stat,
-             dic1, dic2, ffx_dic,
+             fixed_fx_contrast, fixed_fx_variance, fixed_fx_stat,
+             dic1, dic2, fixed_fx_dic,
          )
 
         

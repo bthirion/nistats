@@ -7,10 +7,10 @@ from sklearn.datasets import make_regression
 from sklearn.linear_model import LinearRegression
 
 from nistats.first_level_model import run_glm
-from nistats.contrasts import (_fixed_effect_contrast,
+from nistats.contrasts import (_compute_fixed_effect_contrast,
                                compute_contrast,
                                expression_to_contrast_vector,
-                               _fixed_effects,
+                               _compute_fixed_effects_params,
                                )
 
 
@@ -71,7 +71,7 @@ def test_fixed_effect_contrast():
     X, Y = np.random.randn(p, q), np.random.randn(p, n)
     lab, res = run_glm(Y, X, 'ols')
     c1, c2 = np.eye(q)[0], np.eye(q)[1]
-    con = _fixed_effect_contrast([lab, lab], [res, res], [c1, c2])
+    con = _compute_fixed_effect_contrast([lab, lab], [res, res], [c1, c2])
     z_vals = con.z_score()
     assert_almost_equal(z_vals.mean(), 0, 0)
     assert_almost_equal(z_vals.std(), 1, 0)
@@ -85,9 +85,9 @@ def test_fixed_effect_contrast_nonzero_effect():
     for i in range(X.shape[1]):
         contrast = np.zeros(X.shape[1])
         contrast[i] = 1.
-        fixed_effect = _fixed_effect_contrast([labels], [results], [contrast])
+        fixed_effect = _compute_fixed_effect_contrast([labels], [results], [contrast])
         assert_almost_equal(fixed_effect.effect_size(), coef.ravel()[i])
-        fixed_effect = _fixed_effect_contrast(
+        fixed_effect = _compute_fixed_effect_contrast(
             [labels] * 3, [results] * 3, [contrast] * 3)
         assert_almost_equal(fixed_effect.effect_size(), coef.ravel()[i])
 
@@ -146,7 +146,6 @@ def test_contrast_values():
 
 
 def test_low_level_fixed_effects():
-    # 
     p = 100
     # X1 is some effects estimate, V1 their variance for "session 1"
     X1, V1 = np.random.randn(p), np.ones(p)
@@ -154,15 +153,15 @@ def test_low_level_fixed_effects():
     X2, V2 = 2 * X1, 4 * V1
     # compute the fixed effects estimate, Xf, their variance Vf,
     # and the corresponding t statistic tf
-    Xf, Vf, tf = _fixed_effects([X1, X2], [V1, V2],
-                                precision_weighted=False)
+    Xf, Vf, tf = _compute_fixed_effects_params([X1, X2], [V1, V2],
+                                               precision_weighted=False)
     # check that the values are correct
     assert_almost_equal(Xf, 1.5 * X1)
     assert_almost_equal(Vf, 1.25 * V1)
     assert_almost_equal(tf, Xf / np.sqrt(Vf))
 
     # Same thing, but now there is no precision weighting
-    Xw, Vw, tw = _fixed_effects([X1, X2], [V1, V2],
-                                precision_weighted=True)
+    Xw, Vw, tw = _compute_fixed_effects_params([X1, X2], [V1, V2],
+                                               precision_weighted=True)
     assert_almost_equal(Xw, 1.2 * X1)
     assert_almost_equal(Vw, .8 * V1)

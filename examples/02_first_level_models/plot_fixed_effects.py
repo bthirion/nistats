@@ -83,21 +83,21 @@ plotting.plot_stat_map(
 
 #########################################################################
 # Fixed effects statistics
-from nistats.contrasts import fixed_effects_img
+from nistats.contrasts import compute_fixed_effects
 
 contrast_imgs = [summary_statistics_session1['effect_size'],
                  summary_statistics_session2['effect_size']]
 variance_imgs = [summary_statistics_session1['effect_variance'],
                  summary_statistics_session2['effect_variance']]
 
-ffx_contrast, ffx_variance, ffx_stat = fixed_effects_img(
+fixed_fx_contrast, fixed_fx_variance, fixed_fx_stat = compute_fixed_effects(
     contrast_imgs, variance_imgs, data['mask'])
 plotting.plot_stat_map(
-    ffx_stat, bg_img=mean_img_, threshold=3.0, cut_coords=cut_coords,
+    fixed_fx_stat, bg_img=mean_img_, threshold=3.0, cut_coords=cut_coords,
     title='{0}, fixed effects'.format(contrast_id))
 
 #########################################################################
-# Not unexpectedly, the fixed effects version looks displays higher peaks than the input sessions. Computing fixed effects enhances the signal-to-noise ratio of the resulting brain maps
+# Not unexpectedly, the fixed effects version displays higher peaks than the input sessions. Computing fixed effects enhances the signal-to-noise ratio of the resulting brain maps
 # Note however that, technically, the output maps of the fixed effects map is a t statistic (not a z statistic)
 
 plotting.show()

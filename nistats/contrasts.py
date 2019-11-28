@@ -11,6 +11,8 @@ import numpy as np
 import scipy.stats as sps
 import pandas as pd
 
+from nilearn.input_data import NiftiMasker
+
 from .utils import z_score
 
 DEF_TINY = 1e-50
@@ -93,7 +95,7 @@ def compute_contrast(labels, regression_result, con_val, contrast_type=None):
                     contrast_type=contrast_type)
 
 
-def _fixed_effect_contrast(labels, results, con_vals, contrast_type=None):
+def _compute_fixed_effect_contrast(labels, results, con_vals, contrast_type=None):
     """Computes the summary contrast assuming fixed effects.
 
     Adds the same contrast applied to all labels and results lists.
@@ -288,9 +290,9 @@ class Contrast(object):
         return self.__rmul__(1 / float(scalar))
 
 
-def fixed_effects_img(contrast_imgs, variance_imgs, mask=None,
-                         precision_weighted=False):
-    """Compute the fixed effets given images of effects and variance
+def compute_fixed_effects(contrast_imgs, variance_imgs, mask=None,
+                          precision_weighted=False):
+    """Compute the fixed effects, given images of effects and variance
 
     Parameters
     ----------
@@ -306,20 +308,18 @@ def fixed_effects_img(contrast_imgs, variance_imgs, mask=None,
 
     Returns
     -------
-    ffx_contrast_img: Nifti1Image,
+    fixed_fx_contrast_img: Nifti1Image,
              the fixed effects contrast computed within the mask
-    ffx_variance_img: Nifti1Image,
+    fixed_fx_variance_img: Nifti1Image,
              the fixed effects variance computed within the mask
-    ffx_t_img: Nifti1Image,
+    fixed_fx_t_img: Nifti1Image,
              the fixed effects t-test computed within the mask
     """
-    from nilearn.input_data import NiftiMasker
     if len(contrast_imgs) != len(variance_imgs):
         raise ValueError(
             'The number of contrast images (%d) differs from the number of '
             'variance images (%d). ' % (len(contrast_imgs), len(variance_imgs)))
 
-    # instantiate a masker
     if isinstance(mask, NiftiMasker):
         masker = mask.fit()
     elif mask is None:
@@ -327,32 +327,33 @@ def fixed_effects_img(contrast_imgs, variance_imgs, mask=None,
     else:
         masker = NiftiMasker(mask_img=mask).fit()
 
-    vars = masker.transform(variance_imgs)
-    cons = masker.transform(contrast_imgs)
+    variances = masker.transform(variance_imgs)
+    contrasts = masker.transform(contrast_imgs)
 
-    ffx_contrast, ffx_variance, ffx_t = _fixed_effects(
-        cons, vars, precision_weighted)
+    fixed_fx_contrast, fixed_fx_variance, fixed_fx_t = _compute_fixed_effects_params(
+        contrasts, variances, precision_weighted)
 
-    ffx_contrast_img = masker.inverse_transform(ffx_contrast)
-    ffx_variance_img = masker.inverse_transform(ffx_variance)
-    ffx_t_img = masker.inverse_transform(ffx_t)
-    return ffx_contrast_img, ffx_variance_img, ffx_t_img
+    fixed_fx_contrast_img = masker.inverse_transform(fixed_fx_contrast)
+    fixed_fx_variance_img = masker.inverse_transform(fixed_fx_variance)
+    fixed_fx_t_img = masker.inverse_transform(fixed_fx_t)
+    return fixed_fx_contrast_img, fixed_fx_variance_img, fixed_fx_t_img
 
 
-def _fixed_effects(contrasts, variances, precision_weighted):
-    """Compute the fixed effets given arrays of effects and variance
+def _compute_fixed_effects_params(contrasts, variances, precision_weighted):
+    """ Computes the fixed effects t-statistic, contrast, variance,
+    given arrays of effects and variance.
     """
     tiny = 1.e-16
-    con, var = np.asarray(contrasts), np.asarray(variances)
-    var = np.maximum(var, tiny)
-    #
-    if precision_weighted:
-        weights = 1. / var
-        ffx_var = 1. / np.sum(weights, 0)
-        ffx_con = np.sum(con * weights, 0) * ffx_var
-    else:
-        ffx_var = np.mean(var, 0) / len(variances) 
-        ffx_con = np.mean(con, 0)
+    contrasts, variances = np.asarray(contrasts), np.asarray(variances)
+    variances = np.maximum(variances, tiny)
 
-    ffx_stat = ffx_con / np.sqrt(ffx_var)
-    return ffx_con, ffx_var, ffx_stat
+    if precision_weighted:
+        weights = 1. / variances
+        fixed_fx_variance = 1. / np.sum(weights, 0)
+        fixed_fx_contrasts = np.sum(contrasts * weights, 0) * fixed_fx_variance
+    else:
+        fixed_fx_variance = np.mean(variances, 0) / len(variances)
+        fixed_fx_contrasts = np.mean(contrasts, 0)
+
+    fixed_fx_stat = fixed_fx_contrasts / np.sqrt(fixed_fx_variance)
+    return fixed_fx_contrasts, fixed_fx_variance, fixed_fx_stat
