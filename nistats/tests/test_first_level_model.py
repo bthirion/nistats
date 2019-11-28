@@ -108,17 +108,7 @@ def test_explicit_fixed_effects():
         # raises an error
         assert_raises(ValueError, compute_fixed_effects, contrasts * 2, variance,
                       mask)
-        del (design_matrices,
-             fmri_data,
-             mask,
-             multi_session_model,
-             rk,
-             shapes,
-             variance,
-             contrasts,
-             fixed_fx_contrast, fixed_fx_variance, fixed_fx_stat,
-             dic1, dic2, fixed_fx_dic,
-         )
+        del mask, multi_session_model
 
         
 def test_high_level_glm_with_data():
