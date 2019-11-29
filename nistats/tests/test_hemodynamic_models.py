@@ -133,7 +133,7 @@ def test_sample_condition_3():
     """ Test the experimental condition sampling -- oversampling=10
     """
     condition = ([1, 20, 36.5], [2, 2, 2], [1, 1, 1])
-    frame_times = np.linspace(0, 49, 50) 
+    frame_times = np.linspace(0, 49, 50)
     reg, rf = _sample_condition(condition, frame_times, oversampling=10,
                                min_onset=0)
     assert_almost_equal(reg.sum(), 60.)
