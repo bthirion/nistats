@@ -122,11 +122,11 @@ report = make_glm_report(glm,
 #############################################################################
 # In a jupyter notebook, the report will be automatically inserted, as above.
 # We have several other ways to access the report:
-'''
-report  # This report can be viewed in a notebook
-report.save_as_html('report.html')
-report.open_in_browser()
-'''
+
+# report  # This report can be viewed in a notebook
+# report.save_as_html('report.html')
+# report.open_in_browser()
+
 #############################################################################
 # Transform the maps to an array of values
 # ----------------------------------------
