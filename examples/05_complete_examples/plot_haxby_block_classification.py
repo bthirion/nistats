@@ -119,8 +119,9 @@ report = make_glm_report(glm,
                          bg_img=mean_img_,
                          )
 
-#########################################################################
-# We have several ways to access the report:
+#############################################################################
+# In a jupyter notebook, the report will be automatically inserted, as above.
+# We have several other ways to access the report:
 '''
 report  # This report can be viewed in a notebook
 report.save_as_html('report.html')
