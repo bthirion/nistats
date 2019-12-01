@@ -169,7 +169,7 @@ def test_all_resolution_inference():
     vals = th_map.get_data()
     assert_equal(np.sum(vals > 0), 8)
 
-    # test 1
+    # test 2
     th_map = cluster_level_inference(stat_img, threshold=6 ,alpha=.05)
     vals = th_map.get_data()
     assert_equal(np.sum(vals > 0), 0)

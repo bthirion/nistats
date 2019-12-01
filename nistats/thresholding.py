@@ -13,6 +13,9 @@ from nilearn.input_data import NiftiMasker
 from nilearn.image import math_img
 from scipy.ndimage import label
 from scipy.stats import norm
+from nilearn.input_data import NiftiMasker
+from nilearn.image import math_img
+import matplotlib.pyplot as plt
 
 from nistats.utils import get_data
 
@@ -90,7 +93,6 @@ def _hommel_value(z_vals, alpha, verbose=False):
     slope = np.max(slopes)
     h = np.trunc(n_samples + (alpha - slope * n_samples) / slope)
     if verbose:
-        import matplotlib.pyplot as plt
         plt.figure()
         plt.plot(p_vals, 'o')
         plt.plot([n_samples - h, n_samples], [0, alpha])
@@ -99,18 +101,18 @@ def _hommel_value(z_vals, alpha, verbose=False):
     return np.minimum(h, n_samples)
 
 
-def _true_positive_fraction(z_vals, h, alpha):
+def _true_positive_fraction(z_vals, hommel, alpha):
     """Given a bunch of z-avalues, return the true positive fraction
 
     Parameters
     ----------
     z_vals: array,
             a set of z-variates from which the FDR is computed
-    h: int, 
-       the Hommel value, used in the computations
+    hommel: int,
+           the Hommel value, used in the computations
     alpha: float,
            desired FDR control
-    
+
     Returns
     -------
     threshold: float,
@@ -119,11 +121,11 @@ def _true_positive_fraction(z_vals, h, alpha):
     z_vals_ = - np.sort(- z_vals)
     p_vals = norm.sf(z_vals_)
     n_samples = len(p_vals)
-    c = np.ceil((h * p_vals) / alpha)
+    c = np.ceil((hommel * p_vals) / alpha)
     unique_c, counts = np.unique(c, return_counts=True)
     criterion = 1 - unique_c + np.cumsum(counts)
-    ptd = np.maximum(0, criterion.max() / n_samples)
-    return ptd
+    proportion_true_discoveries = np.maximum(0, criterion.max() / n_samples)
+    return proportion_true_discoveries
 
 
 def fdr_threshold(z_vals, alpha):
@@ -156,8 +158,8 @@ def fdr_threshold(z_vals, alpha):
 
 
 def cluster_level_inference(stat_img, mask_img=None,
-                            threshold=3.,alpha=.05, verbose=False):
-    """ Report the proportion of active voxels for all clusters
+                            threshold=3.,alpha=.05):
+    """report the proportion of active voxels for all clusters
     defined by the input threshold.
 
     Parameters
@@ -168,15 +170,12 @@ def cluster_level_inference(stat_img, mask_img=None,
     mask_img : Niimg-like object, optional,
         mask image
 
-    threshold: list of floats, optional
+    threshold: list of float, optional
        cluster-forming threshold in z-scale.
   
     alpha: float or list, optional
         level of control on the true positive rate, aka true dsicovery
         proportion
-
-    verbose: bool, optional
-        verbosity mode
 
     Returns
     -------
@@ -199,10 +198,10 @@ def cluster_level_inference(stat_img, mask_img=None,
     else:
         masker = NiftiMasker(mask_img=mask_img).fit()
     stats = np.ravel(masker.transform(stat_img))
-    hommel_value = _compute_hommel_value(stats, alpha, verbose=verbose)
+    hommel_ = _hommel_value(stats, alpha, verbose=False)
     
     # embed it back to 3D grid
-    stat_map = get_data(masker.inverse_transform(stats))
+    stat_map = masker.inverse_transform(stats).get_data()
 
     # Extract connected components above threshold
     proportion_true_discoveries_img = math_img('0. * img', img=stat_img)
@@ -211,80 +210,16 @@ def cluster_level_inference(stat_img, mask_img=None,
 
     for threshold_ in sorted(threshold):
         label_map, n_labels = label(stat_map > threshold_)
-        labels = label_map[get_data(masker.mask_img_) > 0]
+        labels = label_map[masker.mask_img_.get_data() > 0]
         for label_ in range(1, n_labels + 1):
             # get the z-vals in the cluster
             cluster_vals = stats[labels == label_]
-            proportion = _true_positive_fraction(cluster_vals, hommel_value, alpha)
+            proportion = _true_positive_fraction(cluster_vals, hommel_, alpha)
             proportion_true_discoveries[labels == label_] = proportion
 
     proportion_true_discoveries_img = masker.inverse_transform(
         proportion_true_discoveries)
     return proportion_true_discoveries_img
-
-
-def cluster_level_inference(stat_img, mask_img=None,
-                            threshold=3.,alpha=.05):
-    """report the proportion of truly active voxels for all clusters
-    defined by the input threshold.
-
-    Parameters
-    ----------
-    stat_img : Niimg-like object or None, optional
-       statistical image (presumably in z scale)
-  
-    mask_img : Niimg-like object, optional,
-        mask image
-
-    threshold: float, optional
-       cluster-forming threshold in z-scale.
-  
-    alpha: float or list, optional
-        level of control on the true positive rate, aka true dsicovery
-        proportion
-
-    Returns
-    -------
-    ptd_img: Nifti1Image,
-        the statistical map that gives the true positive
-
-    Note
-    ----
-    This implements the method described in:
-
-    Rosenblatt JD, Finos L, Weeda WD, Solari A, Goeman JJ. All-Resolutions
-    Inference for brain imaging. Neuroimage. 2018 Nov 1;181:786-796. doi:
-    10.1016/j.neuroimage.2018.07.060
-    """
-    if not isinstance(threshold, list):
-        threshold = [threshold]
-
-    from nilearn.image import math_img
-    if mask_img is None:
-        masker = NiftiMasker(mask_strategy='background').fit(stat_img)
-    else:
-        masker = NiftiMasker(mask_img=mask_img).fit()
-    stats = np.ravel(masker.transform(stat_img))
-    h = _hommel_value(stats, alpha, verbose=False)
-    
-    # embed it back to 3D grid
-    stat_map = masker.inverse_transform(stats).get_data()
-
-    ## Extract connected components above threshold
-    ptd_img = math_img('0. * img', img=stat_img)
-    ptd = masker.transform(ptd_img).ravel()
-
-    for threshold_  in sorted(threshold): 
-        label_map, n_labels = label(stat_map > threshold_)
-        labels = label_map[masker.mask_img_.get_data() > 0]
-        for label_ in range(1, n_labels + 1):
-            # get the p-vals in the cluster
-            cluster_vals = stats[labels == label_] # norm.sf(sorted(-))
-            proportion = _true_positive_fraction(cluster_vals, h, alpha)
-            ptd[labels == label_] = proportion
-
-    ptd_img = masker.inverse_transform(ptd)
-    return ptd_img
 
 
 def map_threshold(stat_img=None, mask_img=None, alpha=.001, threshold=3.,
@@ -305,7 +240,7 @@ def map_threshold(stat_img=None, mask_img=None, alpha=.001, threshold=3.,
     alpha: float or list, optional
         number controling the thresholding (either a p-value or q-value).
         Its actual meaning depends on the height_control parameter.
-        This function translates alpha to a z-scale threshold.    
+        This function translates alpha to a z-scale threshold.
 
     threshold: float, optional
         desired threshold in z-scale
