@@ -492,7 +492,7 @@ def compute_regressor(exp_condition, hrf_model, frame_times, con_id='cond',
     orthogonalized wrt the main one.
     """
     # fir_delays should be integers
-    if fir_delays:
+    if fir_delays is not None:
         fir_delays = [int(x) for x in fir_delays]
 
     # oversampling should be an integer
