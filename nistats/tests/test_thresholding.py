@@ -164,17 +164,42 @@ def test_all_resolution_inference():
     stat_img = nib.Nifti1Image(data, np.eye(4))
     mask_img = nib.Nifti1Image(np.ones(shape), np.eye(4))
 
-    # test 1
-    th_map = cluster_level_inference(stat_img, threshold=3 ,alpha=.05)
+    # test 1: standard case
+    th_map = cluster_level_inference(stat_img, threshold=3, alpha=.05)
     vals = th_map.get_data()
     assert_equal(np.sum(vals > 0), 8)
 
-    # test 2
-    th_map = cluster_level_inference(stat_img, threshold=6 ,alpha=.05)
+    # test 2: high threshold
+    th_map = cluster_level_inference(stat_img, threshold=6, alpha=.05)
     vals = th_map.get_data()
     assert_equal(np.sum(vals > 0), 0)
 
-    # test 3
-    th_map = cluster_level_inference(stat_img, threshold=[3, 6] ,alpha=.05)
+    # test 3: list of thresholds
+    th_map = cluster_level_inference(stat_img, threshold=[3, 6], alpha=.05)
     vals = th_map.get_data()
     assert_equal(np.sum(vals > 0), 8)
+
+    # test 4: one single voxel
+    data[3, 6, 7] = 10
+    stat_img_ = nib.Nifti1Image(data, np.eye(4))
+    th_map = cluster_level_inference(stat_img_, threshold=7, alpha=.05)
+    vals = th_map.get_data()
+    assert_equal(np.sum(vals > 0), 1)
+
+    # test 5: aberrant alpha
+    assert_raises(
+        ValueError, cluster_level_inference, stat_img, threshold=3, alpha=2)
+    assert_raises(
+        ValueError, cluster_level_inference, stat_img, threshold=3, alpha=-1)
+
+    # test 6 with mask_img
+    th_map = cluster_level_inference(stat_img, mask_img=mask_img,
+                                     threshold=3, alpha=.05)
+    vals = th_map.get_data()
+    assert_equal(np.sum(vals > 0), 8)
+
+    # test 7 verbose mode
+    th_map = cluster_level_inference(stat_img, threshold=3, alpha=.05,
+                                     verbose=True)
+    
+    

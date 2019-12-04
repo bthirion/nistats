@@ -158,7 +158,7 @@ def fdr_threshold(z_vals, alpha):
 
 
 def cluster_level_inference(stat_img, mask_img=None,
-                            threshold=3.,alpha=.05):
+                            threshold=3.,alpha=.05, verbose=False):
     """report the proportion of active voxels for all clusters
     defined by the input threshold.
 
@@ -176,6 +176,9 @@ def cluster_level_inference(stat_img, mask_img=None,
     alpha: float or list, optional
         level of control on the true positive rate, aka true dsicovery
         proportion
+
+    verbose: bool, optional
+        verbosity mode
 
     Returns
     -------
@@ -198,7 +201,7 @@ def cluster_level_inference(stat_img, mask_img=None,
     else:
         masker = NiftiMasker(mask_img=mask_img).fit()
     stats = np.ravel(masker.transform(stat_img))
-    hommel_ = _hommel_value(stats, alpha, verbose=False)
+    hommel_ = _hommel_value(stats, alpha, verbose=verbose)
     
     # embed it back to 3D grid
     stat_map = masker.inverse_transform(stats).get_data()
