@@ -8,7 +8,6 @@ of fMRI data analyses.
 Author: Bertrand Thirion, Martin Perez-Guevara, 2016
 
 """
-
 import glob
 import json
 import os
@@ -32,7 +31,7 @@ from sklearn.externals.joblib import (Parallel,
                                       delayed,
                                       )
 
-from .contrasts import _fixed_effect_contrast, expression_to_contrast_vector
+from .contrasts import _compute_fixed_effect_contrast, expression_to_contrast_vector
 from .design_matrix import make_first_level_design_matrix
 from .regression import (ARModel,
                          OLSModel,
@@ -43,6 +42,7 @@ from .utils import (_basestring,
                     _check_events_file_uses_tab_separators,
                     get_bids_files,
                     parse_bids_filename,
+                    get_data
                     )
 from nistats._utils.helpers import replace_parameters
 
@@ -435,7 +435,7 @@ class FirstLevelModel(BaseEstimator, TransformerMixin, CacheMixin):
             # Build the experimental design for the glm
             run_img = check_niimg(run_img, ensure_ndim=4)
             if design_matrices is None:
-                n_scans = run_img.get_data().shape[3]
+                n_scans = get_data(run_img).shape[3]
                 if confounds is not None:
                     confounds_matrix = confounds[run_idx].values
                     if confounds_matrix.shape[0] != n_scans:
@@ -464,6 +464,7 @@ class FirstLevelModel(BaseEstimator, TransformerMixin, CacheMixin):
                 sys.stderr.write('Starting masker computation \r')
 
             Y = self.masker_.transform(run_img)
+            del run_img  # Delete unmasked image to save memory
 
             if self.verbose > 1:
                 t_masking = time.time() - t_masking
@@ -565,8 +566,8 @@ class FirstLevelModel(BaseEstimator, TransformerMixin, CacheMixin):
         if output_type not in valid_types:
             raise ValueError('output_type must be one of {}'.format(valid_types))
 
-        contrast = _fixed_effect_contrast(self.labels_, self.results_,
-                                          con_vals, stat_type)
+        contrast = _compute_fixed_effect_contrast(self.labels_, self.results_,
+                                                  con_vals, stat_type)
 
         output_types = valid_types[:-1] if output_type == 'all' else [output_type]
 
