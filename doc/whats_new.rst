@@ -12,7 +12,7 @@ New
 * Use :func:`nistats.reporting.make_glm_report` to easily generate HTML reports from fitted first and second level models and contrasts.
 * New dataset fetcher, :func:`nistats.datasets.fetch_language_localizer_demo_dataset` , BIDS 1.2 compatible.
 * New example showcasing the use of a GLM to get beta maps for decoding experiments (aka beta-regression).
-  See it `here <https://nistats.github.io/auto_examples/05_complete_examples/plot_bids_analysis.html>`_
+  See it `here <https://nistats.github.io/auto_examples/05_complete_examples/plot_haxby_block_classification.html>`_
   
 Changes
 -------
