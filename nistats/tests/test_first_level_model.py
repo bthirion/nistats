@@ -30,12 +30,12 @@ from nistats.first_level_model import (first_level_models_from_bids,
                                        mean_scaling,
                                        run_glm,
                                        )
-from nistats.utils import get_bids_files
+from nistats.utils import get_bids_files, get_data
 from nistats._utils.testing import (_create_fake_bids_dataset,
                                     _generate_fake_fmri_data,
                                     _write_fake_fmri_data,
                                     )
-
+from nistats.contrasts import compute_fixed_effects
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 FUNCFILE = os.path.join(BASEDIR, 'functional.nii.gz')
@@ -57,6 +57,60 @@ def test_high_level_glm_one_session():
     assert_true(isinstance(z1, Nifti1Image))
 
 
+def test_explicit_fixed_effects():
+    """ tests the fixed effects performed manually/explicitly"""
+    with InTemporaryDirectory():
+        shapes, rk = ((7, 8, 7, 15), (7, 8, 7, 16)), 3
+        mask, fmri_data, design_matrices = _write_fake_fmri_data(shapes, rk)
+        contrast = np.eye(rk)[1]
+        # session 1
+        multi_session_model = FirstLevelModel(mask_img=mask).fit(
+            fmri_data[0], design_matrices=design_matrices[:1])
+        dic1 = multi_session_model.compute_contrast(
+            contrast, output_type='all')
+
+        # session 2
+        multi_session_model.fit(
+            fmri_data[1], design_matrices=design_matrices[1:])
+        dic2 = multi_session_model.compute_contrast(
+            contrast, output_type='all')
+
+        # fixed effects model
+        multi_session_model.fit(
+            fmri_data, design_matrices=design_matrices)
+        fixed_fx_dic = multi_session_model.compute_contrast(
+            contrast, output_type='all')
+
+        # manual version
+        contrasts = [dic1['effect_size'], dic2['effect_size']]
+        variance = [dic1['effect_variance'], dic2['effect_variance']]
+        fixed_fx_contrast, fixed_fx_variance, fixed_fx_stat = compute_fixed_effects(
+            contrasts, variance, mask)
+
+        assert_almost_equal(
+            fixed_fx_contrast.get_data(), fixed_fx_dic['effect_size'].get_data())
+        assert_almost_equal(
+            fixed_fx_variance.get_data(), fixed_fx_dic['effect_variance'].get_data())
+        assert_almost_equal(
+            fixed_fx_stat.get_data(), fixed_fx_dic['stat'].get_data())
+
+        # test without mask variable
+        fixed_fx_contrast, fixed_fx_variance, fixed_fx_stat = compute_fixed_effects(
+            contrasts, variance)
+        assert_almost_equal(
+            fixed_fx_contrast.get_data(), fixed_fx_dic['effect_size'].get_data())
+        assert_almost_equal(
+            fixed_fx_variance.get_data(), fixed_fx_dic['effect_variance'].get_data())
+        assert_almost_equal(
+            fixed_fx_stat.get_data(), fixed_fx_dic['stat'].get_data())
+        
+        # ensure that using unbalanced effects size and variance images
+        # raises an error
+        assert_raises(ValueError, compute_fixed_effects, contrasts * 2, variance,
+                      mask)
+        del mask, multi_session_model
+
+        
 def test_high_level_glm_with_data():
     # New API
     with InTemporaryDirectory():
@@ -64,11 +118,10 @@ def test_high_level_glm_with_data():
         mask, fmri_data, design_matrices = _write_fake_fmri_data(shapes, rk)
         multi_session_model = FirstLevelModel(mask_img=None).fit(
             fmri_data, design_matrices=design_matrices)
-        n_voxels = multi_session_model.masker_.mask_img_.get_data().sum()
+        n_voxels = get_data(multi_session_model.masker_.mask_img_).sum()
         z_image = multi_session_model.compute_contrast(np.eye(rk)[1])
-        assert_equal(np.sum(z_image.get_data() != 0), n_voxels)
-        assert_true(z_image.get_data().std() < 3.)
-
+        assert_equal(np.sum(get_data(z_image) != 0), n_voxels)
+        assert_true(get_data(z_image).std() < 3.)
         # with mask
         multi_session_model = FirstLevelModel(mask_img=mask).fit(
             fmri_data, design_matrices=design_matrices)
@@ -82,18 +135,18 @@ def test_high_level_glm_with_data():
             np.eye(rk)[:2], output_type='effect_size')
         variance_image = multi_session_model.compute_contrast(
             np.eye(rk)[:2], output_type='effect_variance')
-        assert_array_equal(z_image.get_data() == 0., load(mask).get_data() == 0.)
+        assert_array_equal(get_data(z_image) == 0., get_data(load(mask)) == 0.)
         assert_true(
-                (variance_image.get_data()[load(mask).get_data() > 0] > .001).all())
-
+            (get_data(variance_image)[get_data(load(mask)) > 0] > .001).all())
         all_images = multi_session_model.compute_contrast(
                 np.eye(rk)[:2], output_type='all')
-
-        assert_array_equal(all_images['z_score'].get_data(), z_image.get_data())
-        assert_array_equal(all_images['p_value'].get_data(), p_value.get_data())
-        assert_array_equal(all_images['stat'].get_data(), stat_image.get_data())
-        assert_array_equal(all_images['effect_size'].get_data(), effect_image.get_data())
-        assert_array_equal(all_images['effect_variance'].get_data(), variance_image.get_data())
+        assert_array_equal(get_data(all_images['z_score']), get_data(z_image))
+        assert_array_equal(get_data(all_images['p_value']), get_data(p_value))
+        assert_array_equal(get_data(all_images['stat']), get_data(stat_image))
+        assert_array_equal(get_data(all_images['effect_size']),
+                           get_data(effect_image))
+        assert_array_equal(get_data(all_images['effect_variance']),
+                           get_data(variance_image))
         # Delete objects attached to files to avoid WindowsError when deleting
         # temporary directory (in Windows)
         del (all_images,
@@ -108,8 +161,7 @@ def test_high_level_glm_with_data():
              shapes,
              stat_image,
              variance_image,
-             z_image,
-         )
+             z_image)
 
 
 def test_high_level_glm_with_paths():
@@ -121,7 +173,7 @@ def test_high_level_glm_with_paths():
             fmri_files, design_matrices=design_files)
         z_image = multi_session_model.compute_contrast(np.eye(rk)[1])
         assert_array_equal(z_image.affine, load(mask_file).affine)
-        assert_true(z_image.get_data().std() < 3.)
+        assert_true(get_data(z_image).std() < 3.)
         # Delete objects attached to files to avoid WindowsError when deleting
         # temporary directory (in Windows)
         del z_image, fmri_files, multi_session_model
@@ -142,7 +194,7 @@ def test_high_level_glm_null_contrasts():
                                               output_type='stat')
     z2 = single_session_model.compute_contrast(np.eye(rk)[:1],
                                                output_type='stat')
-    np.testing.assert_almost_equal(z1.get_data(), z2.get_data())
+    np.testing.assert_almost_equal(get_data(z1), get_data(z2))
 
 
 def test_run_glm():
@@ -251,7 +303,7 @@ def test_first_level_model_design_creation():
         model = model.fit(func_img, events)
         frame1, X1, names1 = check_design_matrix(model.design_matrices_[0])
         # check design computation is identical
-        n_scans = func_img.get_data().shape[3]
+        n_scans = get_data(func_img).shape[3]
         start_time = slice_time_ref * t_r
         end_time = (n_scans - 1 + slice_time_ref) * t_r
         frame_times = np.linspace(start_time, end_time, n_scans)

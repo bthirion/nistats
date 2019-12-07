@@ -18,6 +18,7 @@ Changes
 -------
 
 * Nistats now uses BIDS v1.2 & BIDS Derivatives terminology.
+* `run_img` variable deleted after masking in FirstLevelModel to reduce memory use.
 
 Fixes
 -----
@@ -26,7 +27,9 @@ Fixes
 * fixed effect contrasts now average effect sizes across runs rather than
   summing them.
 * :func:`nistats.first_level_model.first_level_models_from_bids` uses correct BIDS v1.2 conventions.
-
+* Explicit method for fixed effects to support image-based summary
+  statistics approach.
+  
 Contributors
 ------------
 
