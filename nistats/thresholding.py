@@ -230,9 +230,7 @@ def map_threshold(stat_img=None, mask_img=None, alpha=.001, threshold=3.,
             "height control should be one of {0}", height_control_methods)
 
     # if two-sided, correct alpha by a factor of 2
-    alpha_ = alpha
-    if two_sided:
-        alpha_ = alpha / 2
+    alpha_ = alpha / 2 if two_sided else alpha
 
     # if height_control is 'fpr' or None, we don't need to look at the data
     # to compute the threshold
